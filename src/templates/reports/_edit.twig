@@ -1,0 +1,91 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'reports' %}
+{% set fullPageForm = true %}
+{% set crumbs = [
+    { label: "Download Tracker"|t('download-tracker'), url: url('download-tracker') },
+    { label: "Reports"|t('download-tracker'), url: url('download-tracker/reports') },
+] %}
+
+{% set sourceTypeOptions = {
+    '': "Any"|t('download-tracker'),
+    'asset': "Asset"|t('download-tracker'),
+    'path': "Path"|t('download-tracker'),
+    'url': "URL"|t('download-tracker'),
+} %}
+
+{% block content %}
+    <input type="hidden" name="action" value="download-tracker/reports/save">
+    {{ redirectInput('download-tracker/reports') }}
+    {% if not isNew %}{{ hiddenInput('reportId', report.id) }}{% endif %}
+
+    {{ forms.textField({
+        first: true,
+        label: "Name"|t('download-tracker'),
+        name: 'name',
+        value: report.name,
+        required: true,
+        errors: report.getErrors('name'),
+    }) }}
+
+    <hr>
+
+    {{ forms.textField({
+        label: "File name contains"|t('download-tracker'),
+        name: 'search',
+        value: criteria.search ?? '',
+    }) }}
+
+    {{ forms.selectField({
+        label: "File type"|t('download-tracker'),
+        name: 'sourceType',
+        options: sourceTypeOptions,
+        value: criteria.sourceType ?? '',
+    }) }}
+
+    <div class="flex">
+        {{ forms.textField({
+            type: 'date',
+            label: "From"|t('download-tracker'),
+            name: 'dateFrom',
+            value: criteria.dateFrom ?? '',
+        }) }}
+        {{ forms.textField({
+            type: 'date',
+            label: "To"|t('download-tracker'),
+            name: 'dateTo',
+            value: criteria.dateTo ?? '',
+        }) }}
+    </div>
+    <p class="light" style="margin-top:-8px">{{ "Leave the dates empty to report on all-time totals."|t('download-tracker') }}</p>
+
+    {{ forms.textField({
+        type: 'number',
+        label: "Minimum downloads"|t('download-tracker'),
+        name: 'minCount',
+        value: criteria.minCount ?? '',
+        size: 6,
+    }) }}
+
+    {{ forms.selectField({
+        label: "Order by"|t('download-tracker'),
+        name: 'orderBy',
+        options: {
+            count: "Downloads"|t('download-tracker'),
+            lastDownloaded: "Last downloaded"|t('download-tracker'),
+            filename: "File name"|t('download-tracker'),
+        },
+        value: criteria.orderBy ?? 'count',
+    }) }}
+
+    {{ forms.selectField({
+        label: "Direction"|t('download-tracker'),
+        name: 'sort',
+        options: {
+            desc: "Descending"|t('download-tracker'),
+            asc: "Ascending"|t('download-tracker'),
+        },
+        value: criteria.sort ?? 'desc',
+    }) }}
+{% endblock %}

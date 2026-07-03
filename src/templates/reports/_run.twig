@@ -1,0 +1,48 @@
+{% extends "_layouts/cp" %}
+
+{% set title = report.name %}
+{% set selectedSubnavItem = 'reports' %}
+{% set crumbs = [
+    { label: "Download Tracker"|t('download-tracker'), url: url('download-tracker') },
+    { label: "Reports"|t('download-tracker'), url: url('download-tracker/reports') },
+] %}
+
+{% block actionButton %}
+    <a href="{{ actionUrl('download-tracker/reports/export', { reportId: report.id }) }}" class="btn icon download">{{ "Export CSV"|t('download-tracker') }}</a>
+    {% if canManage %}
+        <a href="{{ url('download-tracker/reports/' ~ report.id) }}" class="btn">{{ "Edit"|t('download-tracker') }}</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if rows|length %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "File"|t('download-tracker') }}</th>
+                    <th scope="col">{{ "Downloads"|t('download-tracker') }}</th>
+                    <th scope="col">{{ "Last downloaded"|t('download-tracker') }}</th>
+                    <th scope="col">{{ "Type"|t('download-tracker') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <th scope="row">
+                            {% if row.source starts with 'http' %}
+                                <a href="{{ row.source }}" target="_blank" rel="noopener">{{ row.filename }}</a>
+                            {% else %}
+                                {{ row.filename }}
+                            {% endif %}
+                        </th>
+                        <td><strong>{{ row.count|number }}</strong></td>
+                        <td>{{ row.lastDownloaded ? row.lastDownloaded|date('d M Y, H:i') : '—' }}</td>
+                        <td>{{ row.sourceType }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{{ "This report matched no downloads."|t('download-tracker') }}</p>
+    {% endif %}
+{% endblock %}

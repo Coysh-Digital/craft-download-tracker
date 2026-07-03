@@ -1,0 +1,20 @@
+{% import "_includes/forms" as forms %}
+
+{{ forms.textField({
+    type: 'number',
+    label: "How many"|t('download-tracker'),
+    name: 'limit',
+    value: widget.limit,
+    size: 4,
+    min: 1,
+}) }}
+
+{{ forms.textField({
+    type: 'number',
+    label: "Last N days"|t('download-tracker'),
+    instructions: "Leave 0 for all-time totals."|t('download-tracker'),
+    name: 'days',
+    value: widget.days,
+    size: 4,
+    min: 0,
+}) }}

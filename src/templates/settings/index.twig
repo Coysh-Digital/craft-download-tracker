@@ -1,0 +1,138 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set title = "Settings"|t('download-tracker') %}
+{% set selectedSubnavItem = 'settings' %}
+{% set fullPageForm = not readOnly %}
+
+{# Capture the array settings as newline-separated textarea values. #}
+{% set prefixesText %}{% for line in settings.trackedPathPrefixes %}{{ line }}{% if not loop.last %}
+{% endif %}{% endfor %}{% endset %}
+{% set extensionsText %}{% for line in settings.trackedExtensions %}{{ line }}{% if not loop.last %}
+{% endif %}{% endfor %}{% endset %}
+{% set hostsText %}{% for line in settings.excludedHosts %}{{ line }}{% if not loop.last %}
+{% endif %}{% endfor %}{% endset %}
+
+{% block content %}
+    {% if readOnly %}
+        <blockquote class="note">
+            {{ "These settings are stored in project config, and admin changes are disabled in this environment, so they're read-only here. Edit them where admin changes are allowed, or in config/download-tracker.php, then deploy."|t('download-tracker') }}
+        </blockquote>
+    {% else %}
+        <input type="hidden" name="action" value="download-tracker/settings/save">
+        {{ redirectInput('download-tracker/settings') }}
+    {% endif %}
+
+    <h2>{{ "Tracking"|t('download-tracker') }}</h2>
+
+    {{ forms.lightswitchField({
+        first: true,
+        label: "Auto-track download links"|t('download-tracker'),
+        instructions: "Inject a small script on front-end pages that counts download clicks with no template changes. Works with full-page static caching."|t('download-tracker'),
+        name: 'settings[injectTrackingScript]',
+        on: settings.injectTrackingScript,
+        disabled: readOnly or 'injectTrackingScript' in overrides,
+    }) }}
+
+    {{ forms.textareaField({
+        label: "Tracked path prefixes"|t('download-tracker'),
+        instructions: "One URL path prefix per line (e.g. /assets/files/downloads/). Links under these paths are tracked."|t('download-tracker'),
+        name: 'settings[trackedPathPrefixes]',
+        value: prefixesText,
+        rows: 4,
+        disabled: readOnly or 'trackedPathPrefixes' in overrides,
+    }) }}
+
+    {{ forms.textareaField({
+        label: "Tracked extensions"|t('download-tracker'),
+        instructions: "One file extension per line (no dot). Links to these file types are tracked."|t('download-tracker'),
+        name: 'settings[trackedExtensions]',
+        value: extensionsText,
+        rows: 4,
+        disabled: readOnly or 'trackedExtensions' in overrides,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Track download-attribute links"|t('download-tracker'),
+        instructions: "Also track any link carrying a download attribute, regardless of path or extension."|t('download-tracker'),
+        name: 'settings[trackDownloadAttr]',
+        on: settings.trackDownloadAttr,
+        disabled: readOnly or 'trackDownloadAttr' in overrides,
+    }) }}
+
+    {{ forms.textareaField({
+        label: "Excluded hosts"|t('download-tracker'),
+        instructions: "One hostname per line to ignore (e.g. an image CDN whose links aren't real downloads)."|t('download-tracker'),
+        name: 'settings[excludedHosts]',
+        value: hostsText,
+        rows: 3,
+        disabled: readOnly or 'excludedHosts' in overrides,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Ignore prefetch & bots"|t('download-tracker'),
+        instructions: "Don't count browser prefetch/prerender requests or obvious crawlers."|t('download-tracker'),
+        name: 'settings[ignorePrefetchAndBots]',
+        on: settings.ignorePrefetchAndBots,
+        disabled: readOnly or 'ignorePrefetchAndBots' in overrides,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Track non-asset files"|t('download-tracker'),
+        instructions: "Also count links that don't resolve to a Craft asset (same-site paths under a tracked prefix, or remote URLs). Leaving this off keeps the counter table bounded to real assets."|t('download-tracker'),
+        name: 'settings[trackUnresolvedFiles]',
+        on: settings.trackUnresolvedFiles,
+        disabled: readOnly or 'trackUnresolvedFiles' in overrides,
+    }) }}
+
+    <hr>
+    <h2>{{ "Served downloads"|t('download-tracker') }}</h2>
+    <p class="light" style="max-width:48em">{{ "These apply to the optional craft.downloadTracker.url(asset) route, used for gated, private, or forced downloads."|t('download-tracker') }}</p>
+
+    {{ forms.selectField({
+        label: "Serve mode"|t('download-tracker'),
+        name: 'settings[serveMode]',
+        options: serveModeOptions,
+        value: settings.serveMode,
+        disabled: readOnly or 'serveMode' in overrides,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Force download"|t('download-tracker'),
+        instructions: "Serve files as an attachment (Save as…) rather than opening them inline."|t('download-tracker'),
+        name: 'settings[forceDownload]',
+        on: settings.forceDownload,
+        disabled: readOnly or 'forceDownload' in overrides,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Require login"|t('download-tracker'),
+        instructions: "Only serve files on the download route to logged-in users."|t('download-tracker'),
+        name: 'settings[requireLoginToServe]',
+        on: settings.requireLoginToServe,
+        disabled: readOnly or 'requireLoginToServe' in overrides,
+    }) }}
+
+    {{ forms.textField({
+        type: 'number',
+        label: "Signed URL lifetime (seconds)"|t('download-tracker'),
+        instructions: "How long a served-download link stays valid; 0 = never expires. Keep 0 when links appear on statically-cached pages, since an expired token would be baked into the cached HTML."|t('download-tracker'),
+        name: 'settings[signedUrlTtl]',
+        value: settings.signedUrlTtl,
+        size: 8,
+        disabled: readOnly or 'signedUrlTtl' in overrides,
+    }) }}
+
+    <hr>
+    <h2>{{ "Data retention"|t('download-tracker') }}</h2>
+
+    {{ forms.textField({
+        type: 'number',
+        label: "Daily rollup retention (days)"|t('download-tracker'),
+        instructions: "Per-day rollup rows older than this are pruned automatically. Running totals are always kept."|t('download-tracker'),
+        name: 'settings[dailyRetentionDays]',
+        value: settings.dailyRetentionDays,
+        size: 6,
+        disabled: readOnly or 'dailyRetentionDays' in overrides,
+    }) }}
+{% endblock %}

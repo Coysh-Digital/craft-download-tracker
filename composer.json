@@ -1,0 +1,70 @@
+{
+    "name": "coysh-digital/craft-download-tracker",
+    "description": "Lightweight, static-cache-friendly download tracking for Craft CMS - counts downloads per file with an atomic counter (no element-per-download bloat).",
+    "version": "1.0.0",
+    "type": "craft-plugin",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "downloads",
+        "download-tracking",
+        "assets",
+        "analytics",
+        "blitz"
+    ],
+    "license": "proprietary",
+    "support": {
+        "email": "support@coysh.digital",
+        "issues": "https://github.com/Coysh-Digital/craft-download-tracker/issues",
+        "source": "https://github.com/Coysh-Digital/craft-download-tracker",
+        "docs": "https://github.com/Coysh-Digital/craft-download-tracker/blob/main/README.md"
+    },
+    "authors": [
+        {
+            "name": "Coysh Digital",
+            "homepage": "https://coysh.digital"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "craftcms/cms": "^5.0.0"
+    },
+    "require-dev": {
+        "craftcms/ecs": "dev-main",
+        "craftcms/phpstan": "dev-main"
+    },
+    "autoload": {
+        "psr-4": {
+            "coyshdigital\\downloadtracker\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "Download Tracker",
+        "handle": "download-tracker",
+        "developer": "Coysh Digital",
+        "developerUrl": "https://coysh.digital",
+        "documentationUrl": "https://github.com/Coysh-Digital/craft-download-tracker/blob/main/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/Coysh-Digital/craft-download-tracker/main/CHANGELOG.md",
+        "class": "coyshdigital\\downloadtracker\\Plugin",
+        "components": {
+            "downloads": "coyshdigital\\downloadtracker\\services\\Downloads",
+            "reports": "coyshdigital\\downloadtracker\\services\\Reports"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "8.2"
+        },
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
+    },
+    "scripts": {
+        "check-cs": "ecs check --ansi",
+        "fix-cs": "ecs check --fix --ansi",
+        "phpstan": "phpstan analyse --memory-limit=1G"
+    }
+}

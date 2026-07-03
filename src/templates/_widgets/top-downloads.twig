@@ -1,0 +1,20 @@
+{% if rows|length %}
+    <table class="data fullwidth">
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>
+                        {% if row.source starts with 'http' %}
+                            <a href="{{ row.source }}" target="_blank" rel="noopener">{{ row.filename }}</a>
+                        {% else %}
+                            {{ row.filename }}
+                        {% endif %}
+                    </td>
+                    <td class="rightalign"><strong>{{ row.count|number }}</strong></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="light">{{ "No downloads tracked yet."|t('download-tracker') }}</p>
+{% endif %}

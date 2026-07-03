@@ -1,0 +1,89 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Downloads"|t('download-tracker') %}
+{% set selectedSubnavItem = 'downloads' %}
+
+{% import "_includes/forms" as forms %}
+
+{% set sortColumns = [
+    { key: 'filename', label: "File"|t('download-tracker') },
+    { key: 'count', label: "Downloads"|t('download-tracker') },
+    { key: 'lastDownloaded', label: "Last downloaded"|t('download-tracker') },
+] %}
+
+{% set baseParams = search ? { search: search } : {} %}
+
+{% block actionButton %}
+    <a href="{{ actionUrl('download-tracker/downloads/export', baseParams|merge({ orderBy: orderBy, sort: sort })) }}" class="btn icon download">{{ "Export CSV"|t('download-tracker') }}</a>
+{% endblock %}
+
+{% block content %}
+    <form method="get" action="{{ url('download-tracker') }}" class="flex" style="margin-bottom:24px; gap:8px">
+        <div class="flex-grow">
+            {{ forms.text({
+                name: 'search',
+                value: search,
+                placeholder: "Search by file name"|t('download-tracker'),
+            }) }}
+        </div>
+        <input type="hidden" name="orderBy" value="{{ orderBy }}">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <button type="submit" class="btn submit">{{ "Search"|t('download-tracker') }}</button>
+        {% if search %}
+            <a href="{{ url('download-tracker') }}" class="btn">{{ "Clear"|t('download-tracker') }}</a>
+        {% endif %}
+    </form>
+
+    {% if rows|length %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    {% for column in sortColumns %}
+                        {% set active = orderBy == column.key %}
+                        {% set nextSort = (active and sort == 'desc') ? 'asc' : 'desc' %}
+                        <th scope="col">
+                            <a href="{{ url('download-tracker', baseParams|merge({ orderBy: column.key, sort: nextSort })) }}">
+                                {{- column.label }}
+                                {%- if active %} <span class="light">{{ sort == 'desc' ? '▼' : '▲' }}</span>{% endif -%}
+                            </a>
+                        </th>
+                    {% endfor %}
+                    <th scope="col">{{ "Type"|t('download-tracker') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <th scope="row">
+                            {% if row.source starts with 'http' %}
+                                <a href="{{ row.source }}" target="_blank" rel="noopener">{{ row.filename }}</a>
+                            {% else %}
+                                {{ row.filename }}
+                            {% endif %}
+                        </th>
+                        <td><strong>{{ row.count|number }}</strong></td>
+                        <td data-title="{{ 'Last downloaded'|t('download-tracker') }}">
+                            {{ row.lastDownloaded ? row.lastDownloaded|date('d M Y, H:i') : '—' }}
+                        </td>
+                        <td>{{ row.sourceType }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if totalPages > 1 %}
+            <div class="flex" style="margin-top:20px; align-items:center; gap:12px">
+                {% set navParams = baseParams|merge({ orderBy: orderBy, sort: sort }) %}
+                {% if page > 1 %}
+                    <a class="btn" href="{{ url('download-tracker', navParams|merge({ page: page - 1 })) }}">{{ "← Previous"|t('download-tracker') }}</a>
+                {% endif %}
+                <span class="light">{{ "Page {page} of {total}"|t('download-tracker', { page: page, total: totalPages }) }} · {{ total|number }} {{ "files"|t('download-tracker') }}</span>
+                {% if page < totalPages %}
+                    <a class="btn" href="{{ url('download-tracker', navParams|merge({ page: page + 1 })) }}">{{ "Next →"|t('download-tracker') }}</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <p>{{ "No downloads have been tracked yet."|t('download-tracker') }}</p>
+    {% endif %}
+{% endblock %}

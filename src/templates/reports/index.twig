@@ -1,0 +1,52 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Reports"|t('download-tracker') %}
+{% set selectedSubnavItem = 'reports' %}
+
+{% block actionButton %}
+    {% if canManage %}
+        <a href="{{ url('download-tracker/reports/new') }}" class="btn submit add icon">{{ "New report"|t('download-tracker') }}</a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <p class="light" style="margin-bottom:24px; max-width:48em">
+        {{ "A report is a saved set of filters - a date range, file type, minimum count, or file-name search - that you can run or export to CSV at any time."|t('download-tracker') }}
+    </p>
+
+    {% if reports|length %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Name"|t('download-tracker') }}</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                    <tr>
+                        <th scope="row"><a href="{{ url('download-tracker/reports/' ~ report.id ~ '/run') }}">{{ report.name }}</a></th>
+                        <td class="thin">
+                            <div class="flex flex-nowrap" style="gap:8px; justify-content:flex-end">
+                                <a class="btn small" href="{{ url('download-tracker/reports/' ~ report.id ~ '/run') }}">{{ "Run"|t('download-tracker') }}</a>
+                                <a class="btn small" href="{{ actionUrl('download-tracker/reports/export', { reportId: report.id }) }}">{{ "CSV"|t('download-tracker') }}</a>
+                                {% if canManage %}
+                                    <a class="btn small" href="{{ url('download-tracker/reports/' ~ report.id) }}">{{ "Edit"|t('download-tracker') }}</a>
+                                    <form method="post" onsubmit="return confirm('{{ 'Delete this report?'|t('download-tracker') }}')">
+                                        {{ csrfInput() }}
+                                        {{ actionInput('download-tracker/reports/delete') }}
+                                        {{ redirectInput('download-tracker/reports') }}
+                                        {{ hiddenInput('id', report.id) }}
+                                        <button type="submit" class="btn small delete">{{ "Delete"|t('download-tracker') }}</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{{ "No saved reports yet."|t('download-tracker') }}</p>
+    {% endif %}
+{% endblock %}
