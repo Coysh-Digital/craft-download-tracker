@@ -1,5 +1,11 @@
 # Release Notes for Download Tracker
 
+## 1.0.1 - 2026-07-03
+
+### Changed
+- Adopted the standard Coysh Digital commercial license.
+- Refreshed the plugin icon and updated the README.
+
 ## 1.0.0 - 2026-07-03
 
 ### Added

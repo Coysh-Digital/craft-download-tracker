@@ -1,7 +1,7 @@
 {
     "name": "coysh-digital/craft-download-tracker",
     "description": "Lightweight, static-cache-friendly download tracking for Craft CMS - counts downloads per file with an atomic counter (no element-per-download bloat).",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "type": "craft-plugin",
     "keywords": [
         "craft",
