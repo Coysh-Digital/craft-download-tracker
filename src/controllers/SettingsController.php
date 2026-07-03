@@ -36,7 +36,10 @@ class SettingsController extends Controller
             return false;
         }
 
-        $this->requireAdmin();
+        // Require an admin, but not that admin changes are allowed - admins may
+        // still *view* the settings on environments where allowAdminChanges is
+        // off; the page renders read-only and actionSave() blocks any writes.
+        $this->requireAdmin(false);
 
         return true;
     }

@@ -1,5 +1,19 @@
 # Release Notes for Download Tracker
 
+## 1.0.2 - 2026-07-03
+
+### Fixed
+- Settings page is now viewable (read-only) for admins in environments where
+  `allowAdminChanges` is off, instead of returning a 403. Saving is still
+  blocked in those environments.
+- The **Tracked extensions**, **Tracked path prefixes**, and **Excluded hosts**
+  textareas no longer render their values run together on a single line - each
+  value now appears on its own line again.
+
+### Changed
+- Redrew the control-panel icon with a more balanced arrow-and-tray glyph so it
+  no longer looks squished in the sidebar.
+
 ## 1.0.1 - 2026-07-03
 
 ### Changed

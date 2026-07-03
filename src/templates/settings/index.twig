@@ -5,13 +5,12 @@
 {% set selectedSubnavItem = 'settings' %}
 {% set fullPageForm = not readOnly %}
 
-{# Capture the array settings as newline-separated textarea values. #}
-{% set prefixesText %}{% for line in settings.trackedPathPrefixes %}{{ line }}{% if not loop.last %}
-{% endif %}{% endfor %}{% endset %}
-{% set extensionsText %}{% for line in settings.trackedExtensions %}{{ line }}{% if not loop.last %}
-{% endif %}{% endfor %}{% endset %}
-{% set hostsText %}{% for line in settings.excludedHosts %}{{ line }}{% if not loop.last %}
-{% endif %}{% endfor %}{% endset %}
+{# Present the array settings as newline-separated textarea values. Building the
+   text with a {% for %} loop swallows the separators (Twig drops the newline
+   that immediately follows a tag), so join the values explicitly instead. #}
+{% set prefixesText = settings.trackedPathPrefixes|join("\n") %}
+{% set extensionsText = settings.trackedExtensions|join("\n") %}
+{% set hostsText = settings.excludedHosts|join("\n") %}
 
 {% block content %}
     {% if readOnly %}
