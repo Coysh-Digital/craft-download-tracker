@@ -1,5 +1,13 @@
 # Release Notes for Download Tracker
 
+## 1.0.3 - 2026-07-08
+
+### Changed
+- Now we're in the plugin store, I thought it was time for a decent logo.
+  Redrew the plugin icon as a proper coloured badge (a download arrow over
+  rising count bars) so it stands on its own next to the other listings, and
+  updated the control-panel mask icon to match.
+
 ## 1.0.2 - 2026-07-03
 
 ### Fixed
