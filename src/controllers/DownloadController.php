@@ -12,7 +12,6 @@ use Craft;
 use coyshdigital\downloadtracker\models\Settings;
 use coyshdigital\downloadtracker\Plugin;
 use craft\web\Controller;
-use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
@@ -43,7 +42,6 @@ class DownloadController extends Controller
      * Counts and serves a download.
      *
      * @return Response
-     * @throws BadRequestHttpException if the token is missing or invalid.
      * @throws NotFoundHttpException if the asset no longer exists.
      * @throws \yii\web\ForbiddenHttpException if login is required and absent.
      */
@@ -55,8 +53,18 @@ class DownloadController extends Controller
         $token = (string)Craft::$app->getRequest()->getParam('token', '');
         $assetId = $plugin->downloads->unsignAsset($token);
 
+        // The route is anonymous and its URL is guessable, so scanners and stale
+        // links hit it with no (or a junk) token as a matter of course. That's a
+        // routine bad request, not an application fault: answer 404 rather than
+        // throw, so it doesn't surface as an exception. The reason is still
+        // logged for anyone debugging a genuinely broken signed link.
         if ($assetId === null) {
-            throw new BadRequestHttpException('Invalid download token.');
+            Craft::info(
+                'Refused a download request with a missing or invalid token.',
+                __METHOD__,
+            );
+
+            return $this->_notFound();
         }
 
         if ($settings->requireLoginToServe) {
@@ -90,6 +98,21 @@ class DownloadController extends Controller
 
     // Private Methods
     // =========================================================================
+
+    /**
+     * Returns an empty 404, for requests that carry no usable download token.
+     *
+     * @return Response
+     */
+    private function _notFound(): Response
+    {
+        $response = Craft::$app->getResponse();
+        $response->setStatusCode(404);
+        $response->format = Response::FORMAT_RAW;
+        $response->content = '';
+
+        return $response;
+    }
 
     /**
      * Streams an asset's bytes through PHP, covering both local and remote

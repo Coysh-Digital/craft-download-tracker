@@ -1,5 +1,17 @@
 # Release Notes for Download Tracker
 
+## 1.0.4 - 2026-07-08
+
+### Fixed
+- The served-download route now returns a plain 404 when a request arrives with
+  a missing or invalid token, instead of throwing a `BadRequestHttpException`.
+  The route is anonymous and its URL is easy to guess, so bots and stale links
+  probe it constantly with no token at all. Each of those probes was raising an
+  application exception, which filled up error trackers with noise that wasn't
+  a fault in the site. Nothing about the token check has changed, and no file
+  was ever served without a valid token. The rejection reason is still written
+  to the Craft logs, so a genuinely broken signed link can still be traced.
+
 ## 1.0.3 - 2026-07-08
 
 ### Changed
