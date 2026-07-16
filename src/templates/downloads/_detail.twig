@@ -1,0 +1,136 @@
+{% extends "_layouts/cp" %}
+
+{% set title = record.filename %}
+{% set selectedSubnavItem = 'downloads' %}
+{% set crumbs = [
+    { label: "Downloads"|t('download-tracker'), url: url('download-tracker') },
+] %}
+
+{% block actionButton %}
+    <a href="{{ actionUrl('download-tracker/downloads/export-daily', { countId: record.id, days: days }) }}" class="btn icon download">{{ "Export CSV"|t('download-tracker') }}</a>
+{% endblock %}
+
+{% block content %}
+    <div class="flex" style="gap:40px; margin-bottom:28px">
+        <div>
+            <div class="light smalltext">{{ "All downloads"|t('download-tracker') }}</div>
+            <div style="font-size:28px; font-weight:600; line-height:1.2">{{ total|number }}</div>
+        </div>
+        {% if showCrawlers %}
+            <div>
+                <div class="light smalltext">{{ "People"|t('download-tracker') }}</div>
+                <div style="font-size:28px; font-weight:600; line-height:1.2">{{ userTotal|number }}</div>
+            </div>
+            <div>
+                <div class="light smalltext">{{ "Crawlers"|t('download-tracker') }}</div>
+                <div class="light" style="font-size:28px; font-weight:600; line-height:1.2">{{ crawlerTotal|number }}</div>
+            </div>
+        {% endif %}
+        <div>
+            <div class="light smalltext">{{ "Last downloaded"|t('download-tracker') }}</div>
+            <div style="font-size:16px; line-height:1.2; padding-top:10px">
+                {{ record.lastDownloaded ? record.lastDownloaded|date('d M Y, H:i') : '—' }}
+            </div>
+        </div>
+    </div>
+
+    {% if record.source starts with 'http' %}
+        <p class="light smalltext" style="margin-bottom:24px">
+            <a href="{{ record.source }}" target="_blank" rel="noopener" class="go">{{ record.source }}</a>
+        </p>
+    {% endif %}
+
+    <hr>
+
+    <div class="flex" style="gap:16px; margin-bottom:12px; align-items:center">
+        <h2 style="margin:0">{{ "Last {days} days"|t('download-tracker', { days: days }) }}</h2>
+        <div class="btngroup">
+            {% for option in rangeOptions %}
+                <a class="btn{{ option == days ? ' active' : '' }}"
+                   href="{{ url('download-tracker/downloads/' ~ record.id, { days: option }) }}">{{ option }}d</a>
+            {% endfor %}
+        </div>
+        <span class="light smalltext">
+            {{ "{count} in this range"|t('download-tracker', { count: rangeTotal|number }) }}
+            {%- if showCrawlers %} · {{ "{count} people"|t('download-tracker', { count: rangeUserTotal|number }) }} · {{ "{count} crawlers"|t('download-tracker', { count: rangeCrawlerTotal|number }) }}{% endif %}
+        </span>
+    </div>
+
+    {# Bars drawn straight into the markup: no chart library, no request, nothing
+       to load. The <title> in each group is what gives them hover tooltips. #}
+    {% set chartWidth = 720 %}
+    {% set chartHeight = 120 %}
+    {% set barWidth = chartWidth / series|length %}
+
+    <svg viewBox="0 0 {{ chartWidth }} {{ chartHeight }}"
+         preserveAspectRatio="none"
+         role="img"
+         aria-label="{{ 'Downloads per day for the last {days} days'|t('download-tracker', { days: days }) }}"
+         style="width:100%; height:{{ chartHeight }}px; display:block; background:var(--gray-050, #f3f7fc); border-radius:4px">
+        {% for i, point in series %}
+            {% if point.count > 0 %}
+                {% set totalHeight = point.count / peak * chartHeight %}
+                {% set crawlerHeight = showCrawlers ? (point.crawlerCount / peak * chartHeight) : 0 %}
+                <g>
+                    <title>{{ point.date|date('d M Y') }} — {{ point.count|number }} {{ "downloads"|t('download-tracker') }}{% if showCrawlers %} ({{ point.userCount|number }} {{ "people"|t('download-tracker') }}, {{ point.crawlerCount|number }} {{ "crawlers"|t('download-tracker') }}){% endif %}</title>
+                    {# People sit on the axis, crawlers stack above them. #}
+                    <rect x="{{ i * barWidth }}" y="{{ chartHeight - (totalHeight - crawlerHeight) }}"
+                          width="{{ barWidth }}" height="{{ totalHeight - crawlerHeight }}"
+                          fill="var(--primary-color, #3f6ec6)" />
+                    {% if crawlerHeight > 0 %}
+                        <rect x="{{ i * barWidth }}" y="{{ chartHeight - totalHeight }}"
+                              width="{{ barWidth }}" height="{{ crawlerHeight }}"
+                              fill="var(--gray-300, #cdd8e4)" />
+                    {% endif %}
+                </g>
+            {% endif %}
+        {% endfor %}
+    </svg>
+
+    <div class="flex light smalltext" style="justify-content:space-between; margin-top:4px">
+        <span>{{ series|first.date|date('d M Y') }}</span>
+        <span>{{ "Peak {count}/day"|t('download-tracker', { count: peak|number }) }}</span>
+        <span>{{ series|last.date|date('d M Y') }}</span>
+    </div>
+
+    <h2 style="margin-top:32px">{{ "Day by day"|t('download-tracker') }}</h2>
+
+    {# Only days that saw a download, newest first: the chart carries the shape of
+       the range, the table is for reading actual numbers off. #}
+    {% set daysWithDownloads = series|filter(point => point.count > 0)|reverse %}
+
+    {% if daysWithDownloads|length %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th scope="col">{{ "Date"|t('download-tracker') }}</th>
+                    <th scope="col">{{ "Downloads"|t('download-tracker') }}</th>
+                    {% if showCrawlers %}
+                        <th scope="col">{{ "People"|t('download-tracker') }}</th>
+                        <th scope="col">{{ "Crawlers"|t('download-tracker') }}</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for point in daysWithDownloads %}
+                    <tr>
+                        <th scope="row">{{ point.date|date('d M Y') }}</th>
+                        <td><strong>{{ point.count|number }}</strong></td>
+                        {% if showCrawlers %}
+                            <td>{{ point.userCount|number }}</td>
+                            <td class="light">{{ point.crawlerCount|number }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{{ "No downloads in this range."|t('download-tracker') }}</p>
+    {% endif %}
+
+    {% if days > retentionDays %}
+        <p class="light smalltext" style="margin-top:12px">
+            {{ "Daily history is only kept for {days} days, so earlier days in this range show as zero."|t('download-tracker', { days: retentionDays }) }}
+        </p>
+    {% endif %}
+{% endblock %}

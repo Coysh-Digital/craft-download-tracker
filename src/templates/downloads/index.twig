@@ -8,8 +8,14 @@
 {% set sortColumns = [
     { key: 'filename', label: "File"|t('download-tracker') },
     { key: 'count', label: "Downloads"|t('download-tracker') },
-    { key: 'lastDownloaded', label: "Last downloaded"|t('download-tracker') },
 ] %}
+
+{# Under any other crawler mode the column is always zero, so it's just noise. #}
+{% if showCrawlers %}
+    {% set sortColumns = sortColumns|merge([{ key: 'crawlerCount', label: "Crawlers"|t('download-tracker') }]) %}
+{% endif %}
+
+{% set sortColumns = sortColumns|merge([{ key: 'lastDownloaded', label: "Last downloaded"|t('download-tracker') }]) %}
 
 {% set baseParams = search ? { search: search } : {} %}
 
@@ -55,13 +61,15 @@
                 {% for row in rows %}
                     <tr>
                         <th scope="row">
+                            <a href="{{ url('download-tracker/downloads/' ~ row.id) }}">{{ row.filename }}</a>
                             {% if row.source starts with 'http' %}
-                                <a href="{{ row.source }}" target="_blank" rel="noopener">{{ row.filename }}</a>
-                            {% else %}
-                                {{ row.filename }}
+                                <a href="{{ row.source }}" target="_blank" rel="noopener" class="go" title="{{ 'Open file'|t('download-tracker') }}"></a>
                             {% endif %}
                         </th>
                         <td><strong>{{ row.count|number }}</strong></td>
+                        {% if showCrawlers %}
+                            <td class="light" data-title="{{ 'Crawlers'|t('download-tracker') }}">{{ row.crawlerCount|number }}</td>
+                        {% endif %}
                         <td data-title="{{ 'Last downloaded'|t('download-tracker') }}">
                             {{ row.lastDownloaded ? row.lastDownloaded|date('d M Y, H:i') : '—' }}
                         </td>

@@ -1,5 +1,55 @@
 # Release Notes for Download Tracker
 
+## 1.1.0 - 2026-07-16
+
+### Added
+- **Crawler downloads** setting, controlling what happens when a search engine,
+  AI crawler, link unfurler or monitoring tool downloads a file:
+  - **Count separately** (new default) - counted toward the total, and toward a
+    crawler total of their own, so you can read your human numbers off the split.
+  - **Don't count** - the file is served, nothing is recorded.
+  - **Block with a 403** - the served-download route refuses outright and streams
+    nothing. Only the served route can block; the beacon has no file to withhold.
+- Crawler detection covers the well-known search, AI, social and monitoring
+  crawlers by name, with a catch-all for the long tail, and an **Extra crawler
+  user agents** setting for anything else you see in your own logs.
+- **Per-file detail page**: click a file in the Downloads list for its totals,
+  a day-by-day chart and table over the last 30, 90 or 365 days, and a CSV
+  export of that history.
+- Twig API: `craft.downloadTracker.userTotal()`, `.crawlerTotal()`, and
+  `.daily(file, days)` for a file's day-by-day history.
+- `beforeTrackDownload` events now carry `isCrawler`, so a handler can decide
+  about crawler hits itself without touching the setting.
+
+### Changed
+- **`count` is now the total: people and crawlers together.** Under the new
+  default, crawler downloads are included in it, and the human figure is
+  `count - crawlerCount`. Every existing list, report, widget and Twig call
+  keeps working unchanged, but a site that previously discarded bot hits will
+  see its totals rise once crawlers start counting. Installs that had
+  `ignorePrefetchAndBots` on keep their existing behaviour automatically - see
+  below - so this only affects new installs and anyone who opts in.
+- The served-download route now recognises prefetch and crawler requests, which
+  it previously ignored entirely: it counted every request carrying a valid
+  token, whatever sent it. A browser prefetch of a download link is therefore no
+  longer counted twice (once when speculatively fetched, once when clicked).
+- Browser prefetch and prerender requests are always served and never counted,
+  whatever **Crawler downloads** is set to. A prefetch is a real browser getting
+  ready for a real click - neither a crawler to turn away nor a download to
+  count.
+- `lastDownloaded` tracks when `count` last moved, so a counted crawler hit
+  updates it too.
+- The Downloads CSV export gained **User downloads** and **Crawler downloads**
+  columns. They're appended after the existing ones, so anything reading that
+  file by column position is unaffected.
+
+### Deprecated
+- `ignorePrefetchAndBots`, replaced by `crawlerMode`. It's still honoured, from
+  both project config and `config/download-tracker.php`: `true` maps to
+  `crawlerMode: 'ignore'` and `false` to `'separate'`, so upgrading doesn't
+  change how an existing site counts. An explicit `crawlerMode` always wins.
+  Support for the old setting will be removed in 2.0.
+
 ## 1.0.4 - 2026-07-08
 
 ### Fixed

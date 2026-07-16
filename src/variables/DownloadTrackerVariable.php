@@ -43,7 +43,7 @@ class DownloadTrackerVariable
     }
 
     /**
-     * Returns the running download total for a file.
+     * Returns the running download total for a file: people and crawlers alike.
      *
      * @param Asset|int|string $file An asset, an asset ID, or a URL/path string.
      * @return int
@@ -51,6 +51,41 @@ class DownloadTrackerVariable
     public function total(Asset|int|string $file): int
     {
         return Plugin::getInstance()->downloads->getTotal($file);
+    }
+
+    /**
+     * Returns the human download total for a file: everything bar the crawlers.
+     *
+     * @param Asset|int|string $file
+     * @return int
+     */
+    public function userTotal(Asset|int|string $file): int
+    {
+        return Plugin::getInstance()->downloads->getUserTotal($file);
+    }
+
+    /**
+     * Returns the crawler download total for a file.
+     *
+     * @param Asset|int|string $file
+     * @return int
+     */
+    public function crawlerTotal(Asset|int|string $file): int
+    {
+        return Plugin::getInstance()->downloads->getCrawlerTotal($file);
+    }
+
+    /**
+     * Returns a file's day-by-day history for the last N days, one entry per day
+     * (days with no downloads come back as zeroes).
+     *
+     * @param Asset|int|string $file
+     * @param int $days
+     * @return array<int, array{date: string, count: int, userCount: int, crawlerCount: int}>
+     */
+    public function daily(Asset|int|string $file, int $days = 30): array
+    {
+        return Plugin::getInstance()->downloads->getDaily($file, $days);
     }
 
     /**

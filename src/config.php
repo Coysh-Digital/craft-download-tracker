@@ -36,8 +36,16 @@ return [
     // Force a "Save as…" download rather than opening inline (served route only).
     'forceDownload' => false,
 
-    // Don't count browser prefetch / prerender / obvious bot requests.
-    'ignorePrefetchAndBots' => true,
+    // How crawler downloads are handled: 'separate' (counted toward the total and
+    // toward a crawler total of their own, keeping them out of your human
+    // numbers), 'ignore' (not counted at all), or 'block' (refused with a 403 on
+    // the served-download route). Browser prefetch/prerender requests are always
+    // served and never counted, whichever you pick.
+    'crawlerMode' => 'separate',
+
+    // Extra User-Agent tokens to treat as crawlers, on top of the built-in list.
+    // Matched case-insensitively as substrings, not patterns (e.g. 'acmebot').
+    'crawlerUserAgents' => [],
 
     // Require a logged-in user for the served-download route.
     'requireLoginToServe' => false,

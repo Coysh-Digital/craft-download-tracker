@@ -9,6 +9,7 @@
 namespace coyshdigital\downloadtracker\controllers;
 
 use Craft;
+use coyshdigital\downloadtracker\helpers\RequestSignals;
 use coyshdigital\downloadtracker\Plugin;
 use craft\web\Controller;
 use yii\web\Response;
@@ -58,9 +59,16 @@ class TrackController extends Controller
         $request = Craft::$app->getRequest();
         $settings = Plugin::getInstance()->getSettings();
 
-        if ($settings->ignorePrefetchAndBots && $this->_isPrefetchOrBot()) {
+        $signal = RequestSignals::classifyCurrentRequest($settings->normalizedCrawlerUserAgents());
+
+        // The beacon serves nothing, so there's nothing to refuse: a crawler that
+        // would be blocked on the served route just gets the same empty 204 as
+        // everyone else, and counts for nothing.
+        if (!$settings->shouldCount($signal)) {
             return $this->_noContent();
         }
+
+        $isCrawler = $signal === RequestSignals::SIGNAL_CRAWLER;
 
         $id = $request->getParam('id');
         $url = $request->getParam('url');
@@ -78,7 +86,7 @@ class TrackController extends Controller
 
         if ($file !== null) {
             try {
-                Plugin::getInstance()->downloads->increment($file, [], $downloadFlag);
+                Plugin::getInstance()->downloads->increment($file, [], $downloadFlag, $isCrawler);
             } catch (\Throwable $e) {
                 // Never let a transient DB hiccup turn a fire-and-forget beacon
                 // into a 500; just log it and return no content.
@@ -91,34 +99,6 @@ class TrackController extends Controller
 
     // Private Methods
     // =========================================================================
-
-    /**
-     * Returns whether the current request looks like a prefetch/prerender or a bot.
-     *
-     * @return bool
-     */
-    private function _isPrefetchOrBot(): bool
-    {
-        $headers = Craft::$app->getRequest()->getHeaders();
-
-        $secPurpose = strtolower((string)$headers->get('Sec-Purpose'));
-        if (str_contains($secPurpose, 'prefetch') || str_contains($secPurpose, 'prerender')) {
-            return true;
-        }
-        if (strtolower((string)$headers->get('Purpose')) === 'prefetch') {
-            return true;
-        }
-        if (strtolower((string)$headers->get('X-Moz')) === 'prefetch') {
-            return true;
-        }
-
-        $userAgent = strtolower((string)$headers->get('User-Agent'));
-        if ($userAgent === '') {
-            return true;
-        }
-
-        return (bool)preg_match('/bot|crawl|spider|slurp|facebookexternalhit|preview|monitor|headless/i', $userAgent);
-    }
 
     /**
      * Builds an empty `204 No Content` response.

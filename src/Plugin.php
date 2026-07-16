@@ -80,7 +80,7 @@ class Plugin extends BasePlugin
     /**
      * @inheritdoc
      */
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.1.0';
 
     // Private Properties
     // =========================================================================
@@ -206,6 +206,10 @@ class Plugin extends BasePlugin
             function(RegisterUrlRulesEvent $event) {
                 $event->rules['download-tracker'] = 'download-tracker/downloads/index';
                 $event->rules['download-tracker/downloads'] = 'download-tracker/downloads/index';
+                // Routed on the counter row's ID rather than its downloadKey: the
+                // keys carry a colon, which would collide with the rule syntax and
+                // leak their shape into bookmarkable URLs.
+                $event->rules['download-tracker/downloads/<countId:\d+>'] = 'download-tracker/downloads/detail';
 
                 $event->rules['download-tracker/reports'] = 'download-tracker/reports/index';
                 $event->rules['download-tracker/reports/new'] = 'download-tracker/reports/edit';

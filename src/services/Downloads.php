@@ -80,11 +80,18 @@ class Downloads extends Component
      * @param Asset|int|string $file An asset, an asset ID, or a URL/path string.
      * @param array<string, mixed> $meta Reserved for future metadata.
      * @param bool $downloadFlag Whether the client flagged this as a forced download.
+     * @param bool $isCrawler Whether the hit came from a crawler. Crawler hits count
+     *   toward the total like any other, and additionally toward `crawlerCount`,
+     *   which makes `count - crawlerCount` the human total.
      * @return bool Whether a download was counted.
      * @throws \yii\db\Exception if the upsert fails.
      */
-    public function increment(Asset|int|string $file, array $meta = [], bool $downloadFlag = false): bool
-    {
+    public function increment(
+        Asset|int|string $file,
+        array $meta = [],
+        bool $downloadFlag = false,
+        bool $isCrawler = false,
+    ): bool {
         $identity = $this->resolveIdentity($file, $downloadFlag);
 
         if ($identity === null) {
@@ -97,6 +104,7 @@ class Downloads extends Component
             'asset' => $identity['asset'],
             'sourceType' => $identity['sourceType'],
             'filename' => $identity['filename'],
+            'isCrawler' => $isCrawler,
         ]);
         $this->trigger(self::EVENT_BEFORE_TRACK_DOWNLOAD, $event);
 
@@ -109,6 +117,22 @@ class Downloads extends Component
         $now = Db::prepareDateForDb($nowDate);
         $today = $nowDate->format('Y-m-d');
 
+        // `count` is the total, so it bumps for everyone; `crawlerCount` only for
+        // crawlers. Adding the key only when it's needed keeps the SQL on the
+        // common path byte-for-byte what it always was.
+        $countsUpdate = [
+            'count' => new Expression('[[count]] + 1'),
+            // This tracks when `count` last moved, so a crawler hit bumps it too.
+            'lastDownloaded' => $now,
+            'dateUpdated' => $now,
+            'assetId' => $identity['assetId'],
+            'filename' => $identity['filename'],
+        ];
+
+        if ($isCrawler) {
+            $countsUpdate['crawlerCount'] = new Expression('[[crawlerCount]] + 1');
+        }
+
         // The running total: one row per file, incremented atomically.
         $db->createCommand()->upsert(
             CountRecord::tableName(),
@@ -119,19 +143,23 @@ class Downloads extends Component
                 'source' => $identity['source'],
                 'filename' => $identity['filename'],
                 'count' => 1,
+                'crawlerCount' => $isCrawler ? 1 : 0,
                 'lastDownloaded' => $now,
                 'dateCreated' => $now,
                 'dateUpdated' => $now,
                 'uid' => StringHelper::UUID(),
             ],
-            [
-                'count' => new Expression('[[count]] + 1'),
-                'lastDownloaded' => $now,
-                'dateUpdated' => $now,
-                'assetId' => $identity['assetId'],
-                'filename' => $identity['filename'],
-            ],
+            $countsUpdate,
         )->execute();
+
+        $dailyUpdate = [
+            'count' => new Expression('[[count]] + 1'),
+            'dateUpdated' => $now,
+        ];
+
+        if ($isCrawler) {
+            $dailyUpdate['crawlerCount'] = new Expression('[[crawlerCount]] + 1');
+        }
 
         // The per-day rollup: one row per file per day, incremented atomically.
         $db->createCommand()->upsert(
@@ -140,14 +168,12 @@ class Downloads extends Component
                 'downloadKey' => $identity['downloadKey'],
                 'date' => $today,
                 'count' => 1,
+                'crawlerCount' => $isCrawler ? 1 : 0,
                 'dateCreated' => $now,
                 'dateUpdated' => $now,
                 'uid' => StringHelper::UUID(),
             ],
-            [
-                'count' => new Expression('[[count]] + 1'),
-                'dateUpdated' => $now,
-            ],
+            $dailyUpdate,
         )->execute();
 
         return true;
@@ -167,6 +193,32 @@ class Downloads extends Component
     }
 
     /**
+     * Returns the human download total for a file: everything bar the crawlers.
+     *
+     * @param Asset|int|string $file
+     * @return int
+     */
+    public function getUserTotal(Asset|int|string $file): int
+    {
+        $record = $this->getCountRecord($file);
+
+        return $record ? max(0, (int)$record->count - (int)$record->crawlerCount) : 0;
+    }
+
+    /**
+     * Returns the crawler download total for a file.
+     *
+     * @param Asset|int|string $file
+     * @return int
+     */
+    public function getCrawlerTotal(Asset|int|string $file): int
+    {
+        $record = $this->getCountRecord($file);
+
+        return $record ? (int)$record->crawlerCount : 0;
+    }
+
+    /**
      * Returns the counter record for a file, if one exists.
      *
      * @param Asset|int|string $file
@@ -181,6 +233,92 @@ class Downloads extends Component
         }
 
         return CountRecord::findOne(['downloadKey' => $identity['downloadKey']]);
+    }
+
+    /**
+     * Returns the counter record with the given ID, if one exists.
+     *
+     * @param int $id
+     * @return CountRecord|null
+     */
+    public function getCountRecordById(int $id): ?CountRecord
+    {
+        return CountRecord::findOne($id);
+    }
+
+    /**
+     * Returns a file's day-by-day history between two dates, one entry per day.
+     *
+     * Days with no rollup row come back as zeroes, so callers get an unbroken
+     * series and never have to reason about the gaps.
+     *
+     * @param string $downloadKey
+     * @param string $dateFrom A `Y-m-d` date.
+     * @param string $dateTo A `Y-m-d` date.
+     * @return array<int, array{date: string, count: int, userCount: int, crawlerCount: int}>
+     */
+    public function dailySeries(string $downloadKey, string $dateFrom, string $dateTo): array
+    {
+        $rows = (new Query())
+            ->select(['date', 'count', 'crawlerCount'])
+            ->from(DailyRecord::tableName())
+            ->where(['downloadKey' => $downloadKey])
+            ->andWhere(['>=', 'date', $dateFrom])
+            ->andWhere(['<=', 'date', $dateTo])
+            ->all();
+
+        // Key on the date alone: what a driver hands back for a DATE column isn't
+        // guaranteed to be bare `Y-m-d`.
+        $byDate = [];
+        foreach ($rows as $row) {
+            $byDate[substr((string)$row['date'], 0, 10)] = $row;
+        }
+
+        $series = [];
+        $period = new \DatePeriod(
+            new \DateTimeImmutable($dateFrom),
+            new \DateInterval('P1D'),
+            (new \DateTimeImmutable($dateTo))->modify('+1 day'),
+        );
+
+        foreach ($period as $day) {
+            $date = $day->format('Y-m-d');
+            $count = (int)($byDate[$date]['count'] ?? 0);
+            $crawlerCount = (int)($byDate[$date]['crawlerCount'] ?? 0);
+
+            $series[] = [
+                'date' => $date,
+                'count' => $count,
+                'crawlerCount' => $crawlerCount,
+                'userCount' => max(0, $count - $crawlerCount),
+            ];
+        }
+
+        return $series;
+    }
+
+    /**
+     * Returns a file's day-by-day history for the last N days, one entry per day.
+     *
+     * @param Asset|int|string $file
+     * @param int $days
+     * @return array<int, array{date: string, count: int, userCount: int, crawlerCount: int}>
+     */
+    public function getDaily(Asset|int|string $file, int $days = 30): array
+    {
+        $identity = $this->resolveIdentity($file);
+
+        if ($identity === null) {
+            return [];
+        }
+
+        $today = DateTimeHelper::currentUTCDateTime();
+
+        return $this->dailySeries(
+            $identity['downloadKey'],
+            $today->modify('-' . (max(1, $days) - 1) . ' days')->format('Y-m-d'),
+            $today->format('Y-m-d'),
+        );
     }
 
     /**
@@ -351,7 +489,9 @@ class Downloads extends Component
         $rows = $this->query($criteria);
 
         $handle = fopen('php://temp', 'r+');
-        fputcsv($handle, ['File', 'Downloads', 'Last downloaded', 'Type', 'Source']);
+        // The two totals are appended rather than slotted in beside Downloads, so
+        // every column anyone already parses by position stays where it was.
+        fputcsv($handle, ['File', 'Downloads', 'Last downloaded', 'Type', 'Source', 'User downloads', 'Crawler downloads']);
 
         foreach ($rows as $row) {
             fputcsv($handle, [
@@ -360,6 +500,42 @@ class Downloads extends Component
                 $row['lastDownloaded'],
                 $row['sourceType'],
                 $this->_csvSafe($row['source']),
+                $row['userCount'],
+                $row['crawlerCount'],
+            ]);
+        }
+
+        rewind($handle);
+        $csv = (string)stream_get_contents($handle);
+        fclose($handle);
+
+        return $csv;
+    }
+
+    /**
+     * Builds a CSV export of one file's day-by-day history.
+     *
+     * Every cell here is a server-generated date or an integer, so there's no
+     * attacker-controlled text for `_csvSafe()` to neutralise - the file name is
+     * deliberately kept out of the rows and put in the download's name instead.
+     * Anything added later that carries user text must go through the guard.
+     *
+     * @param string $downloadKey
+     * @param string $dateFrom A `Y-m-d` date.
+     * @param string $dateTo A `Y-m-d` date.
+     * @return string
+     */
+    public function exportDailyCsv(string $downloadKey, string $dateFrom, string $dateTo): string
+    {
+        $handle = fopen('php://temp', 'r+');
+        fputcsv($handle, ['Date', 'Downloads', 'User downloads', 'Crawler downloads']);
+
+        foreach ($this->dailySeries($downloadKey, $dateFrom, $dateTo) as $row) {
+            fputcsv($handle, [
+                $row['date'],
+                $row['count'],
+                $row['userCount'],
+                $row['crawlerCount'],
             ]);
         }
 
@@ -671,7 +847,11 @@ class Downloads extends Component
 
         if ($dateFrom || $dateTo) {
             $sub = (new Query())
-                ->select(['downloadKey', 'rangeCount' => new Expression('SUM([[count]])')])
+                ->select([
+                    'downloadKey',
+                    'rangeCount' => new Expression('SUM([[count]])'),
+                    'rangeCrawlerCount' => new Expression('SUM([[crawlerCount]])'),
+                ])
                 ->from(DailyRecord::tableName());
 
             if ($dateFrom) {
@@ -685,9 +865,15 @@ class Downloads extends Component
 
             $query->innerJoin(['d' => $sub], '[[d.downloadKey]] = [[c.downloadKey]]');
             $select['count'] = 'd.rangeCount';
+            $select['crawlerCount'] = 'd.rangeCrawlerCount';
+            // Derived from the subquery's own output columns rather than the
+            // aliases beside it, which MySQL wouldn't allow.
+            $select['userCount'] = new Expression('[[d]].[[rangeCount]] - [[d]].[[rangeCrawlerCount]]');
             $countColumn = 'd.rangeCount';
         } else {
             $select['count'] = 'c.count';
+            $select['crawlerCount'] = 'c.crawlerCount';
+            $select['userCount'] = new Expression('[[c]].[[count]] - [[c]].[[crawlerCount]]');
             $countColumn = 'c.count';
         }
 
@@ -703,10 +889,12 @@ class Downloads extends Component
             $query->andWhere(['>=', $countColumn, (int)$criteria['minCount']]);
         }
 
-        // Order by the SELECT aliases (count / filename / lastDownloaded).
+        // Order by the SELECT aliases (count / filename / lastDownloaded / …).
         $orderColumn = match ($criteria['orderBy'] ?? 'count') {
             'filename' => 'filename',
             'lastDownloaded' => 'lastDownloaded',
+            'crawlerCount' => 'crawlerCount',
+            'userCount' => 'userCount',
             default => 'count',
         };
         $sort = strtolower((string)($criteria['sort'] ?? 'desc')) === 'asc' ? SORT_ASC : SORT_DESC;

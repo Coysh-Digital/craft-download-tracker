@@ -9,6 +9,7 @@
 namespace coyshdigital\downloadtracker\controllers;
 
 use Craft;
+use coyshdigital\downloadtracker\helpers\RequestSignals;
 use coyshdigital\downloadtracker\models\Settings;
 use coyshdigital\downloadtracker\Plugin;
 use craft\web\Controller;
@@ -67,6 +68,16 @@ class DownloadController extends Controller
             return $this->_notFound();
         }
 
+        $signal = RequestSignals::classifyCurrentRequest($settings->normalizedCrawlerUserAgents());
+
+        // Refuse before the login check: there's no sense bouncing a crawler we're
+        // about to turn away through a login round-trip first.
+        if ($settings->shouldBlock($signal)) {
+            Craft::info('Refused a download request from a crawler.', __METHOD__);
+
+            return $this->_forbidden();
+        }
+
         if ($settings->requireLoginToServe) {
             $this->requireLogin();
         }
@@ -78,7 +89,12 @@ class DownloadController extends Controller
         }
 
         // Count first, so the download is recorded even if streaming is aborted.
-        $plugin->downloads->increment($asset);
+        // A prefetch is still served - it's a real browser getting ready for a
+        // real click - it just isn't counted, so the click that follows counts
+        // once rather than twice.
+        if ($settings->shouldCount($signal)) {
+            $plugin->downloads->increment($asset, [], false, $signal === RequestSignals::SIGNAL_CRAWLER);
+        }
 
         $url = $asset->getUrl();
 
@@ -108,6 +124,25 @@ class DownloadController extends Controller
     {
         $response = Craft::$app->getResponse();
         $response->setStatusCode(404);
+        $response->format = Response::FORMAT_RAW;
+        $response->content = '';
+
+        return $response;
+    }
+
+    /**
+     * Returns an empty 403, for crawler requests under the 'block' crawler mode.
+     *
+     * A bare response rather than a ForbiddenHttpException, for the same reason
+     * the missing-token case answers 404: a crawler meeting a door that's shut to
+     * it is routine, not an application fault, and shouldn't fill an error tracker.
+     *
+     * @return Response
+     */
+    private function _forbidden(): Response
+    {
+        $response = Craft::$app->getResponse();
+        $response->setStatusCode(403);
         $response->format = Response::FORMAT_RAW;
         $response->content = '';
 

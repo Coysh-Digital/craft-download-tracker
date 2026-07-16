@@ -10,12 +10,15 @@ namespace coyshdigital\downloadtracker\controllers;
 
 use Craft;
 use coyshdigital\downloadtracker\Plugin;
+use craft\helpers\DateTimeHelper;
+use craft\helpers\FileHelper;
 use craft\web\Controller;
 use yii\web\ForbiddenHttpException;
+use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * The control-panel Downloads list + CSV export.
+ * The control-panel Downloads list, per-file detail page, and CSV exports.
  *
  * @author Coysh Digital
  * @since 1.0.0
@@ -29,6 +32,11 @@ class DownloadsController extends Controller
      * @var int How many rows are shown per page.
      */
     public const PER_PAGE = 50;
+
+    /**
+     * @var int[] The day ranges the detail page offers.
+     */
+    public const RANGE_OPTIONS = [30, 90, 365];
 
     // Public Methods
     // =========================================================================
@@ -77,6 +85,81 @@ class DownloadsController extends Controller
             'search' => $request->getParam('search'),
             'orderBy' => $criteria['orderBy'],
             'sort' => $criteria['sort'],
+            'showCrawlers' => Plugin::getInstance()->getSettings()->tracksCrawlersSeparately(),
+        ]);
+    }
+
+    /**
+     * Shows one file's totals and day-by-day history.
+     *
+     * @param int $countId
+     * @return Response
+     * @throws NotFoundHttpException if there's no counter row with that ID.
+     */
+    public function actionDetail(int $countId): Response
+    {
+        $downloads = Plugin::getInstance()->downloads;
+        $settings = Plugin::getInstance()->getSettings();
+        $record = $downloads->getCountRecordById($countId);
+
+        if ($record === null) {
+            throw new NotFoundHttpException('File not found.');
+        }
+
+        $days = $this->_daysFromRequest();
+        [$dateFrom, $dateTo] = $this->_range($days);
+        $series = $downloads->dailySeries($record->downloadKey, $dateFrom, $dateTo);
+
+        $total = (int)$record->count;
+        $crawlerTotal = (int)$record->crawlerCount;
+        $counts = array_column($series, 'count');
+
+        return $this->renderTemplate('download-tracker/downloads/_detail', [
+            'record' => $record,
+            'total' => $total,
+            'crawlerTotal' => $crawlerTotal,
+            'userTotal' => max(0, $total - $crawlerTotal),
+            'series' => $series,
+            'rangeTotal' => array_sum($counts),
+            'rangeUserTotal' => array_sum(array_column($series, 'userCount')),
+            'rangeCrawlerTotal' => array_sum(array_column($series, 'crawlerCount')),
+            // Floored at 1 so a range with no downloads can't divide by zero.
+            'peak' => max(1, (int)max($counts ?: [0])),
+            'days' => $days,
+            'rangeOptions' => self::RANGE_OPTIONS,
+            'showCrawlers' => $settings->tracksCrawlersSeparately(),
+            'retentionDays' => $settings->dailyRetentionDays,
+        ]);
+    }
+
+    /**
+     * Exports one file's day-by-day history as CSV.
+     *
+     * @return Response
+     * @throws NotFoundHttpException if there's no counter row with that ID.
+     */
+    public function actionExportDaily(): Response
+    {
+        $downloads = Plugin::getInstance()->downloads;
+        $countId = (int)Craft::$app->getRequest()->getParam('countId');
+        $record = $downloads->getCountRecordById($countId);
+
+        if ($record === null) {
+            throw new NotFoundHttpException('File not found.');
+        }
+
+        [$dateFrom, $dateTo] = $this->_range($this->_daysFromRequest());
+        $csv = $downloads->exportDailyCsv($record->downloadKey, $dateFrom, $dateTo);
+
+        // The file name reaches this from a tracked link, so it can't go into a
+        // Content-Disposition header as it stands.
+        $filename = FileHelper::sanitizeFilename(
+            pathinfo($record->filename, PATHINFO_FILENAME) . '-daily.csv',
+            ['asciiOnly' => true],
+        );
+
+        return Craft::$app->getResponse()->sendContentAsFile($csv, $filename, [
+            'mimeType' => 'text/csv',
         ]);
     }
 
@@ -107,7 +190,7 @@ class DownloadsController extends Controller
         $request = Craft::$app->getRequest();
 
         $orderBy = (string)$request->getParam('orderBy', 'count');
-        if (!in_array($orderBy, ['count', 'lastDownloaded', 'filename'], true)) {
+        if (!in_array($orderBy, ['count', 'crawlerCount', 'userCount', 'lastDownloaded', 'filename'], true)) {
             $orderBy = 'count';
         }
 
@@ -118,6 +201,34 @@ class DownloadsController extends Controller
             'sourceType' => $request->getParam('sourceType') ?: null,
             'orderBy' => $orderBy,
             'sort' => $sort,
+        ];
+    }
+
+    /**
+     * Returns the requested day range, held to one of the offered options.
+     *
+     * @return int
+     */
+    private function _daysFromRequest(): int
+    {
+        $days = (int)Craft::$app->getRequest()->getParam('days', self::RANGE_OPTIONS[0]);
+
+        return in_array($days, self::RANGE_OPTIONS, true) ? $days : self::RANGE_OPTIONS[0];
+    }
+
+    /**
+     * Returns the `[from, to]` Y-m-d bounds of a day range ending today.
+     *
+     * @param int $days
+     * @return array{string, string}
+     */
+    private function _range(int $days): array
+    {
+        $today = DateTimeHelper::currentUTCDateTime();
+
+        return [
+            $today->modify('-' . ($days - 1) . ' days')->format('Y-m-d'),
+            $today->format('Y-m-d'),
         ];
     }
 }

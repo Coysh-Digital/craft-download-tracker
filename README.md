@@ -21,7 +21,10 @@ on a lightweight background request that static caches always let through.
 - **One counter per file.** Atomic `count + 1` updates mean no per-download row
   explosion and no race conditions, even under heavy concurrent traffic.
 - **Daily breakdown.** A compact per-day rollup (one row per file per day) lets
-  you see trends over time, and old rows are pruned automatically.
+  you see trends over time, and old rows are pruned automatically. Every file has
+  a detail screen with its day-by-day chart, table and CSV export.
+- **People and crawlers, told apart.** Count crawler downloads separately from
+  human ones, ignore them, or block them outright with a 403.
 - **Works with static caching.** Counting happens on a background request, so it
   keeps working on pages served straight from a Blitz (or similar) cache.
 - **Zero-touch setup.** Turn it on and it starts counting your existing download
@@ -79,6 +82,34 @@ The link carries a signed token, counts the download when clicked, and then
 either redirects to the file (for public assets) or streams it through Craft
 (for private or off-server assets).
 
+### Crawlers
+
+Search engines, AI crawlers, link unfurlers and uptime monitors all download
+files, and left alone they quietly inflate your numbers. **Crawler downloads**
+in the settings decides what happens to them:
+
+- **Count separately** (the default) keeps them visible without letting them
+  pollute your human figures. The total counts everything, and the crawler
+  figure beside it tells you how much of that wasn't a person.
+- **Don't count** serves the file and records nothing.
+- **Block with a 403** refuses the download on managed links, so nothing is
+  streamed. This only applies to managed links - the click beacon has no file to
+  withhold, so it simply doesn't count the hit. Worth knowing before you switch
+  it on: blocking trusts the detection completely, and a User-Agent that's
+  wrongly read as a crawler means a real person meets a 403. Counting separately
+  is the safer default because a miscount is something you can see and correct;
+  a refused download just looks broken.
+
+Browser prefetch and prerender requests are always served and never counted,
+whichever you choose - a prefetch is a real browser getting ready for a real
+click, so it's neither a crawler to turn away nor a download to count.
+
+The plugin knows the well-known crawlers by name and catches most of the rest by
+their User-Agent; **Extra crawler user agents** takes anything else you spot in
+your own logs. It deliberately doesn't record *which* crawler made a download:
+that would mean a row per file per crawler per day, which is exactly the row
+growth this plugin exists to avoid.
+
 > **A note on private files:** a download link is a bearer link - anyone who has
 > the URL can use it. If you place a managed link to a *private* asset on a
 > *publicly cached* page, that URL gets baked into the cached HTML and becomes a
@@ -89,14 +120,26 @@ either redirects to the file (for public assets) or streams it through Craft
 ## Reading the numbers in Twig
 
 ```twig
-{{ craft.downloadTracker.total(asset) }}   {# total downloads (a number) #}
-{{ craft.downloadTracker.record(asset) }}  {# the counter record, incl. last download #}
-{{ craft.downloadTracker.top(10) }}        {# the ten most-downloaded files #}
-{{ craft.downloadTracker.url(asset) }}     {# a signed, counting download link #}
+{{ craft.downloadTracker.total(asset) }}         {# all downloads, people and crawlers #}
+{{ craft.downloadTracker.userTotal(asset) }}     {# people only #}
+{{ craft.downloadTracker.crawlerTotal(asset) }}  {# crawlers only #}
+{{ craft.downloadTracker.daily(asset, 30) }}     {# day-by-day history #}
+{{ craft.downloadTracker.record(asset) }}        {# the counter record, incl. last download #}
+{{ craft.downloadTracker.top(10) }}              {# the ten most-downloaded files #}
+{{ craft.downloadTracker.url(asset) }}           {# a signed, counting download link #}
 ```
 
-`total()`, `record()` and `url()` all accept an Asset, an asset ID, or a
-URL/path string.
+All of these accept an Asset, an asset ID, or a URL/path string (`url()` takes an
+Asset).
+
+`daily()` returns one entry per day, oldest first, with days that saw no
+downloads included as zeroes, so you can chart it without minding the gaps:
+
+```twig
+{% for day in craft.downloadTracker.daily(asset, 30) %}
+  {{ day.date }}: {{ day.count }} ({{ day.userCount }} people, {{ day.crawlerCount }} crawlers)
+{% endfor %}
+```
 
 > **Tip:** avoid printing a live download count directly into a statically
 > cached page - the number would freeze until the cache is regenerated. Show
@@ -116,7 +159,8 @@ per-environment values):
 | Track download-attribute links | Also count any link with a `download` attribute. |
 | Excluded hosts | Hostnames to ignore, e.g. an image CDN. |
 | Track non-asset files | Also count links that don't resolve to a Craft asset. Off by default. |
-| Ignore prefetch & bots | Skip browser prefetch/prerender and obvious crawlers. |
+| Crawler downloads | Count crawlers separately, don't count them, or block them with a 403. |
+| Extra crawler user agents | Extra User-Agent tokens to treat as crawlers, on top of the built-in list. |
 | Serve mode | How managed links deliver files: redirect, stream, or auto. |
 | Force download | Serve managed downloads as an attachment (“Save as…”). |
 | Require login | Only serve managed downloads to logged-in users. |

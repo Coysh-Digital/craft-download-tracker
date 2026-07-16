@@ -82,7 +82,10 @@ class Install extends Migration
             'sourceType' => $this->string(16)->notNull(),
             'source' => $this->text(),
             'filename' => $this->string()->notNull(),
+            // The total, people and crawlers alike.
             'count' => $this->bigInteger()->unsigned()->notNull()->defaultValue(0),
+            // The portion of `count` that came from crawlers.
+            'crawlerCount' => $this->bigInteger()->unsigned()->notNull()->defaultValue(0),
             'lastDownloaded' => $this->dateTime(),
             'dateCreated' => $this->dateTime()->notNull(),
             'dateUpdated' => $this->dateTime()->notNull(),
@@ -94,6 +97,7 @@ class Install extends Migration
             'downloadKey' => $this->string()->notNull(),
             'date' => $this->date()->notNull(),
             'count' => $this->integer()->unsigned()->notNull()->defaultValue(0),
+            'crawlerCount' => $this->integer()->unsigned()->notNull()->defaultValue(0),
             'dateCreated' => $this->dateTime()->notNull(),
             'dateUpdated' => $this->dateTime()->notNull(),
             'uid' => $this->uid(),

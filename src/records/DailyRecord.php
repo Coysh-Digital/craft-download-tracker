@@ -16,7 +16,8 @@ use craft\db\ActiveRecord;
  * @property int $id
  * @property string $downloadKey The file's canonical identity.
  * @property string $date The rollup day (Y-m-d).
- * @property int $count The number of downloads on that day.
+ * @property int $count The number of downloads on that day, people and crawlers alike.
+ * @property int $crawlerCount The portion of `count` that came from crawlers.
  *
  * @author Coysh Digital
  * @since 1.0.0

@@ -49,6 +49,11 @@ class DownloadEvent extends Event
     public string $filename;
 
     /**
+     * @var bool Whether the hit came from a crawler rather than a person.
+     */
+    public bool $isCrawler = false;
+
+    /**
      * @var bool Whether the download should be counted. Set to `false` to skip.
      */
     public bool $isValid = true;

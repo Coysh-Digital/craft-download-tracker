@@ -19,7 +19,8 @@ use craft\db\ActiveRecord;
  * @property string $sourceType One of `asset`, `path`, `url`.
  * @property string|null $source The raw asset reference, path, or URL, for display.
  * @property string $filename The file's display name.
- * @property int $count The running download total.
+ * @property int $count The running download total, people and crawlers alike.
+ * @property int $crawlerCount The portion of `count` that came from crawlers.
  * @property string|null $lastDownloaded When the file was last downloaded.
  *
  * @author Coysh Digital

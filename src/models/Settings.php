@@ -8,6 +8,7 @@
 
 namespace coyshdigital\downloadtracker\models;
 
+use coyshdigital\downloadtracker\helpers\RequestSignals;
 use craft\base\Model;
 
 /**
@@ -35,6 +36,21 @@ class Settings extends Model
      * @var string Serve mode: always stream the file through PHP.
      */
     public const SERVE_MODE_STREAM = 'stream';
+
+    /**
+     * @var string Crawler mode: refuse crawler downloads with a 403, count nothing.
+     */
+    public const CRAWLER_MODE_BLOCK = 'block';
+
+    /**
+     * @var string Crawler mode: serve, and count into a separate crawler total.
+     */
+    public const CRAWLER_MODE_SEPARATE = 'separate';
+
+    /**
+     * @var string Crawler mode: serve, but don't count at all.
+     */
+    public const CRAWLER_MODE_IGNORE = 'ignore';
 
     // Public Properties
     // =========================================================================
@@ -79,9 +95,22 @@ class Settings extends Model
     public bool $forceDownload = false;
 
     /**
-     * @var bool Whether to ignore prefetch/prerender and obvious bot requests.
+     * @var string How crawler downloads are handled: 'separate' (counted toward
+     * the total and toward a crawler total of their own), 'ignore' (not counted),
+     * or 'block' (refused with a 403 on the served-download route).
+     *
+     * Browser prefetch and prerender requests are always served and never counted,
+     * whatever this is set to: a prefetch is a real browser preparing for a real
+     * click, so it's neither a crawler nor a download.
      */
-    public bool $ignorePrefetchAndBots = true;
+    public string $crawlerMode = self::CRAWLER_MODE_SEPARATE;
+
+    /**
+     * @var string[] Extra User-Agent tokens to treat as crawlers, on top of the
+     * built-in list. Matched case-insensitively, as substrings rather than
+     * patterns - a regexp here would run on every download.
+     */
+    public array $crawlerUserAgents = [];
 
     /**
      * @var bool Whether the served-download route requires a logged-in user.
@@ -113,15 +142,48 @@ class Settings extends Model
 
     /**
      * @inheritdoc
+     *
+     * Maps the 1.0.x `ignorePrefetchAndBots` boolean onto `crawlerMode`, so an
+     * existing install keeps behaving exactly as it did after upgrading. Yii
+     * discards unknown attributes without a word, so without this the old setting
+     * would simply vanish and the site would quietly start counting crawlers.
+     *
+     * Craft merges project config with config/download-tracker.php and feeds the
+     * result through here, so this covers both.
+     *
+     * @param array<string, mixed>|mixed $values
+     * @param bool $safeOnly
+     * @return void
+     */
+    public function setAttributes($values, $safeOnly = true): void
+    {
+        if (is_array($values) && array_key_exists('ignorePrefetchAndBots', $values)) {
+            $legacy = $values['ignorePrefetchAndBots'];
+            unset($values['ignorePrefetchAndBots']);
+
+            // An explicit crawlerMode always wins over the setting it replaced.
+            if (!array_key_exists('crawlerMode', $values)) {
+                $values['crawlerMode'] = $legacy
+                    ? self::CRAWLER_MODE_IGNORE
+                    : self::CRAWLER_MODE_SEPARATE;
+            }
+        }
+
+        parent::setAttributes($values, $safeOnly);
+    }
+
+    /**
+     * @inheritdoc
      */
     protected function defineRules(): array
     {
         $rules = parent::defineRules();
-        $rules[] = [['injectTrackingScript', 'trackDownloadAttr', 'forceDownload', 'ignorePrefetchAndBots', 'requireLoginToServe', 'trackUnresolvedFiles'], 'boolean'];
-        $rules[] = [['trackedPathPrefixes', 'trackedExtensions', 'excludedHosts'], 'safe'];
+        $rules[] = [['injectTrackingScript', 'trackDownloadAttr', 'forceDownload', 'requireLoginToServe', 'trackUnresolvedFiles'], 'boolean'];
+        $rules[] = [['trackedPathPrefixes', 'trackedExtensions', 'excludedHosts', 'crawlerUserAgents'], 'safe'];
         $rules[] = [['serveMode'], 'in', 'range' => [self::SERVE_MODE_AUTO, self::SERVE_MODE_REDIRECT, self::SERVE_MODE_STREAM]];
+        $rules[] = [['crawlerMode'], 'in', 'range' => [self::CRAWLER_MODE_BLOCK, self::CRAWLER_MODE_SEPARATE, self::CRAWLER_MODE_IGNORE]];
         $rules[] = [['dailyRetentionDays', 'signedUrlTtl'], 'integer', 'min' => 0];
-        $rules[] = [['serveMode', 'dailyRetentionDays'], 'required'];
+        $rules[] = [['serveMode', 'crawlerMode', 'dailyRetentionDays'], 'required'];
 
         return $rules;
     }
@@ -142,5 +204,64 @@ class Settings extends Model
         }
 
         return array_values(array_unique($extensions));
+    }
+
+    /**
+     * Normalizes the extra crawler tokens to a lower-case, deduplicated list.
+     *
+     * @return string[]
+     */
+    public function normalizedCrawlerUserAgents(): array
+    {
+        $tokens = [];
+
+        foreach ($this->crawlerUserAgents as $token) {
+            $token = strtolower(trim((string)$token));
+
+            if ($token !== '') {
+                $tokens[] = $token;
+            }
+        }
+
+        return array_values(array_unique($tokens));
+    }
+
+    /**
+     * Returns whether a request carrying the given signal should be refused
+     * outright rather than served.
+     *
+     * @param string $signal A RequestSignals::SIGNAL_* constant.
+     * @return bool
+     */
+    public function shouldBlock(string $signal): bool
+    {
+        return $signal === RequestSignals::SIGNAL_CRAWLER
+            && $this->crawlerMode === self::CRAWLER_MODE_BLOCK;
+    }
+
+    /**
+     * Returns whether a request carrying the given signal should be counted.
+     *
+     * @param string $signal A RequestSignals::SIGNAL_* constant.
+     * @return bool
+     */
+    public function shouldCount(string $signal): bool
+    {
+        return match ($signal) {
+            // A prefetch isn't a download, whatever the crawler mode says.
+            RequestSignals::SIGNAL_PREFETCH => false,
+            RequestSignals::SIGNAL_CRAWLER => $this->crawlerMode === self::CRAWLER_MODE_SEPARATE,
+            default => true,
+        };
+    }
+
+    /**
+     * Returns whether crawler figures are worth showing in the control panel.
+     *
+     * @return bool
+     */
+    public function tracksCrawlersSeparately(): bool
+    {
+        return $this->crawlerMode === self::CRAWLER_MODE_SEPARATE;
     }
 }

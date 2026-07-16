@@ -52,6 +52,13 @@ class SettingsController extends Controller
     public function actionIndex(): Response
     {
         $plugin = Plugin::getInstance();
+        $overrides = array_keys(Craft::$app->getConfig()->getConfigFromFile('download-tracker'));
+
+        // A config file still using the setting crawlerMode replaced overrides
+        // crawlerMode in practice, so show that field as locked too.
+        if (in_array('ignorePrefetchAndBots', $overrides, true)) {
+            $overrides[] = 'crawlerMode';
+        }
 
         return $this->renderTemplate('download-tracker/settings/index', [
             'plugin' => $plugin,
@@ -61,7 +68,12 @@ class SettingsController extends Controller
                 Settings::SERVE_MODE_REDIRECT => Craft::t('download-tracker', 'Always redirect'),
                 Settings::SERVE_MODE_STREAM => Craft::t('download-tracker', 'Always stream'),
             ],
-            'overrides' => array_keys(Craft::$app->getConfig()->getConfigFromFile('download-tracker')),
+            'crawlerModeOptions' => [
+                Settings::CRAWLER_MODE_SEPARATE => Craft::t('download-tracker', 'Count separately'),
+                Settings::CRAWLER_MODE_IGNORE => Craft::t('download-tracker', 'Don’t count'),
+                Settings::CRAWLER_MODE_BLOCK => Craft::t('download-tracker', 'Block with a 403'),
+            ],
+            'overrides' => $overrides,
             'readOnly' => !Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
         ]);
     }
@@ -84,7 +96,7 @@ class SettingsController extends Controller
         $settings = (array)Craft::$app->getRequest()->getBodyParam('settings', []);
 
         // Textarea/multiline fields arrive as strings; store them as arrays.
-        foreach (['trackedPathPrefixes', 'trackedExtensions', 'excludedHosts'] as $key) {
+        foreach (['trackedPathPrefixes', 'trackedExtensions', 'excludedHosts', 'crawlerUserAgents'] as $key) {
             if (isset($settings[$key]) && is_string($settings[$key])) {
                 $settings[$key] = $this->_lines($settings[$key]);
             }

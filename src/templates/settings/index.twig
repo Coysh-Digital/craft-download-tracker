@@ -11,6 +11,7 @@
 {% set prefixesText = settings.trackedPathPrefixes|join("\n") %}
 {% set extensionsText = settings.trackedExtensions|join("\n") %}
 {% set hostsText = settings.excludedHosts|join("\n") %}
+{% set crawlerAgentsText = settings.crawlerUserAgents|join("\n") %}
 
 {% block content %}
     {% if readOnly %}
@@ -68,12 +69,22 @@
         disabled: readOnly or 'excludedHosts' in overrides,
     }) }}
 
-    {{ forms.lightswitchField({
-        label: "Ignore prefetch & bots"|t('download-tracker'),
-        instructions: "Don't count browser prefetch/prerender requests or obvious crawlers."|t('download-tracker'),
-        name: 'settings[ignorePrefetchAndBots]',
-        on: settings.ignorePrefetchAndBots,
-        disabled: readOnly or 'ignorePrefetchAndBots' in overrides,
+    {{ forms.selectField({
+        label: "Crawler downloads"|t('download-tracker'),
+        instructions: "How to handle downloads from search engines, AI crawlers, link unfurlers and monitoring tools. Counting them separately keeps them out of your human numbers while still showing you the traffic. Blocking refuses them with a 403 on the served-download route, so nothing is streamed. Browser prefetch and prerender requests are always served and never counted, whichever you pick."|t('download-tracker'),
+        name: 'settings[crawlerMode]',
+        options: crawlerModeOptions,
+        value: settings.crawlerMode,
+        disabled: readOnly or 'crawlerMode' in overrides,
+    }) }}
+
+    {{ forms.textareaField({
+        label: "Extra crawler user agents"|t('download-tracker'),
+        instructions: "One token per line, matched case-insensitively anywhere in the User-Agent (e.g. AcmeBot). A long list of well-known crawlers is already built in, so only add tokens you've seen in your own logs."|t('download-tracker'),
+        name: 'settings[crawlerUserAgents]',
+        value: crawlerAgentsText,
+        rows: 3,
+        disabled: readOnly or 'crawlerUserAgents' in overrides,
     }) }}
 
     {{ forms.lightswitchField({
