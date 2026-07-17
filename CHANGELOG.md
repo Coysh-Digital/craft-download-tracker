@@ -17,6 +17,11 @@
   from where it stopped rather than counting anything twice, so you can import,
   leave Link Vault running a while longer, and top up before uninstalling.
 
+- **Craft 4 support.** The plugin now installs on Craft 4.0+ as well as Craft 5.
+  This matters most for the Link Vault import: you can now import your history
+  and drop Link Vault while still on Craft 4, rather than having to carry Link
+  Vault through a Craft 4 to 5 upgrade first. PHP 8.2 is still the floor.
+
 ### Fixed
 - The per-file detail page's date range collapsed to a single day, so the chart,
   the day-by-day table and the "in this range" totals only ever showed one day's

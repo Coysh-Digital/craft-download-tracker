@@ -39,7 +39,7 @@ on a lightweight background request that static caches always let through.
 
 ## Requirements
 
-- Craft CMS 5.0 or later
+- Craft CMS 4.0 or later, or Craft CMS 5.0 or later
 - PHP 8.2 or later
 
 ## Installation
@@ -179,6 +179,10 @@ this plugin keeps a count per file, and the importer folds one into the other.
 **Do this before you uninstall Link Vault.** The importer reads Link Vault's
 tables directly, so the history is gone once they are. Link Vault isn't modified
 or removed — you can import, check the numbers, and only then uninstall it.
+
+Still on Craft 4? This plugin runs there too, and Link Vault's tables are
+identical on both, so you can import your history and drop Link Vault *before*
+upgrading to Craft 5, rather than carrying it through the upgrade.
 
 With both plugins installed, go to **Download Tracker → Import** (admins only;
 the page only exists while Link Vault does). It shows what it will do before you
