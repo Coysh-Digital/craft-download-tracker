@@ -1,7 +1,7 @@
 {
     "name": "coysh-digital/craft-download-tracker",
     "description": "Lightweight, static-cache-friendly download tracking for Craft CMS - counts downloads per file with an atomic counter (no element-per-download bloat).",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "type": "craft-plugin",
     "keywords": [
         "craft",
@@ -19,7 +19,7 @@
         "email": "support@coysh.digital",
         "issues": "https://github.com/Coysh-Digital/craft-download-tracker/issues",
         "source": "https://github.com/Coysh-Digital/craft-download-tracker",
-        "docs": "https://github.com/Coysh-Digital/craft-download-tracker/blob/main/README.md"
+        "docs": "https://coysh.digital/plugins/download-tracker/docs/"
     },
     "authors": [
         {
@@ -45,12 +45,13 @@
         "handle": "download-tracker",
         "developer": "Coysh Digital",
         "developerUrl": "https://coysh.digital",
-        "documentationUrl": "https://github.com/Coysh-Digital/craft-download-tracker/blob/main/README.md",
+        "documentationUrl": "https://coysh.digital/plugins/download-tracker/docs/",
         "changelogUrl": "https://raw.githubusercontent.com/Coysh-Digital/craft-download-tracker/main/CHANGELOG.md",
         "class": "coyshdigital\\downloadtracker\\Plugin",
         "components": {
             "downloads": "coyshdigital\\downloadtracker\\services\\Downloads",
-            "reports": "coyshdigital\\downloadtracker\\services\\Reports"
+            "reports": "coyshdigital\\downloadtracker\\services\\Reports",
+            "linkVaultImport": "coyshdigital\\downloadtracker\\services\\LinkVaultImport"
         }
     },
     "config": {

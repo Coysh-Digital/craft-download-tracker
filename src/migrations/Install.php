@@ -36,6 +36,11 @@ class Install extends Migration
      */
     public const REPORTS = '{{%downloadtracker_reports}}';
 
+    /**
+     * @var string The one-row-per-source import bookkeeping table.
+     */
+    public const IMPORTS = '{{%downloadtracker_imports}}';
+
     // Public Methods
     // =========================================================================
 
@@ -59,6 +64,7 @@ class Install extends Migration
         $this->dropTableIfExists(self::DAILY);
         $this->dropTableIfExists(self::COUNTS);
         $this->dropTableIfExists(self::REPORTS);
+        $this->dropTableIfExists(self::IMPORTS);
 
         return true;
     }
@@ -111,6 +117,22 @@ class Install extends Migration
             'dateUpdated' => $this->dateTime()->notNull(),
             'uid' => $this->uid(),
         ]);
+
+        // Bookkeeping for one-way imports from other download plugins. One row
+        // per source, holding the high-water mark that makes a re-run a no-op
+        // and an incremental top-up cheap.
+        $this->createTable(self::IMPORTS, [
+            'id' => $this->primaryKey(),
+            'source' => $this->string(32)->notNull(),
+            'lastRowId' => $this->bigInteger()->unsigned()->notNull()->defaultValue(0),
+            'rowsImported' => $this->bigInteger()->unsigned()->notNull()->defaultValue(0),
+            'filesTouched' => $this->integer()->unsigned()->notNull()->defaultValue(0),
+            'rowsSkipped' => $this->bigInteger()->unsigned()->notNull()->defaultValue(0),
+            'dateFinished' => $this->dateTime(),
+            'dateCreated' => $this->dateTime()->notNull(),
+            'dateUpdated' => $this->dateTime()->notNull(),
+            'uid' => $this->uid(),
+        ]);
     }
 
     /**
@@ -130,6 +152,9 @@ class Install extends Migration
         $this->createIndex(null, self::DAILY, ['downloadKey', 'date'], true);
         // Supports date-range reports and retention pruning.
         $this->createIndex(null, self::DAILY, ['date']);
+
+        // One row per import source.
+        $this->createIndex(null, self::IMPORTS, ['source'], true);
     }
 
     /**

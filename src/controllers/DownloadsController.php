@@ -225,9 +225,14 @@ class DownloadsController extends Controller
     private function _range(int $days): array
     {
         $today = DateTimeHelper::currentUTCDateTime();
+        // Take the start date off a copy: `modify()` mutates the DateTime and
+        // hands back the same instance, so modifying `$today` in place would
+        // leave both bounds on the start date and collapse the range to a
+        // single day.
+        $from = (clone $today)->modify('-' . ($days - 1) . ' days');
 
         return [
-            $today->modify('-' . ($days - 1) . ' days')->format('Y-m-d'),
+            $from->format('Y-m-d'),
             $today->format('Y-m-d'),
         ];
     }
