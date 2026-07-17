@@ -11,6 +11,7 @@ namespace coyshdigital\downloadtracker;
 use Craft;
 use coyshdigital\downloadtracker\models\Settings;
 use coyshdigital\downloadtracker\services\Downloads;
+use coyshdigital\downloadtracker\services\LinkVaultImport;
 use coyshdigital\downloadtracker\services\Reports;
 use coyshdigital\downloadtracker\variables\DownloadTrackerVariable;
 use coyshdigital\downloadtracker\widgets\TopDownloads;
@@ -37,6 +38,7 @@ use yii\base\Event;
  * @method Settings getSettings()
  * @property-read Downloads $downloads
  * @property-read Reports $reports
+ * @property-read LinkVaultImport $linkVaultImport
  *
  * @author Coysh Digital
  * @since 1.0.0
@@ -80,7 +82,7 @@ class Plugin extends BasePlugin
     /**
      * @inheritdoc
      */
-    public string $schemaVersion = '1.1.0';
+    public string $schemaVersion = '1.2.0';
 
     // Private Properties
     // =========================================================================
@@ -144,6 +146,16 @@ class Plugin extends BasePlugin
         }
 
         if ($user->getIsAdmin()) {
+            // Only while there's something to import from. It's a one-afternoon
+            // task on the way off another plugin, so it shouldn't be permanent
+            // furniture in the nav of every site that never used Link Vault.
+            if ($this->linkVaultImport->isAvailable()) {
+                $item['subnav']['import'] = [
+                    'label' => Craft::t('download-tracker', 'Import'),
+                    'url' => 'download-tracker/import',
+                ];
+            }
+
             $item['subnav']['settings'] = [
                 'label' => Craft::t('download-tracker', 'Settings'),
                 'url' => 'download-tracker/settings',
@@ -215,6 +227,8 @@ class Plugin extends BasePlugin
                 $event->rules['download-tracker/reports/new'] = 'download-tracker/reports/edit';
                 $event->rules['download-tracker/reports/<reportId:\d+>'] = 'download-tracker/reports/edit';
                 $event->rules['download-tracker/reports/<reportId:\d+>/run'] = 'download-tracker/reports/run';
+
+                $event->rules['download-tracker/import'] = 'download-tracker/import/index';
 
                 $event->rules['download-tracker/settings'] = 'download-tracker/settings/index';
             }

@@ -371,7 +371,46 @@ class Downloads extends Component
             return null;
         }
 
-        return $this->_stringIdentity($value);
+        return $this->stringIdentity($value);
+    }
+
+    /**
+     * Builds the identity array for a URL or path string, with none of the
+     * gating `resolveIdentity()` applies.
+     *
+     * That gating exists to stop a public beacon minting counter rows for
+     * arbitrary keys. A caller that has already established the file is real -
+     * an import reading another plugin's history, say - has no untrusted input
+     * to guard against, and needs the key regardless of how the site is
+     * configured today. It goes through here so there is still exactly one
+     * definition of what a `path:`/`url:` key looks like.
+     *
+     * @param string $value
+     * @return array{downloadKey: string, assetId: int|null, asset: Asset|null, sourceType: string, source: string, filename: string}
+     */
+    public function stringIdentity(string $value): array
+    {
+        $parts = parse_url($value);
+        $host = strtolower((string)($parts['host'] ?? ''));
+        $path = (string)($parts['path'] ?? $value);
+        $filename = basename(rawurldecode($path)) ?: $value;
+        $type = ($host !== '') ? self::SOURCE_URL : self::SOURCE_PATH;
+
+        // Key on host+path only, so query strings / cache-busters / fragments
+        // don't fragment a single file's counter into many rows.
+        $canonical = $host . $path;
+        $source = ($host !== '')
+            ? (($parts['scheme'] ?? 'https') . '://' . $host . $path)
+            : $path;
+
+        return [
+            'downloadKey' => $type . ':' . sha1($canonical),
+            'assetId' => null,
+            'asset' => null,
+            'sourceType' => $type,
+            'source' => $source,
+            'filename' => $filename,
+        ];
     }
 
     /**
@@ -608,37 +647,6 @@ class Downloads extends Component
             'sourceType' => self::SOURCE_ASSET,
             'source' => $url ?: ('asset:' . $asset->id),
             'filename' => $asset->getFilename(),
-        ];
-    }
-
-    /**
-     * Builds the identity array for a URL or path string.
-     *
-     * @param string $value
-     * @return array{downloadKey: string, assetId: int|null, asset: Asset|null, sourceType: string, source: string, filename: string}
-     */
-    private function _stringIdentity(string $value): array
-    {
-        $parts = parse_url($value);
-        $host = strtolower((string)($parts['host'] ?? ''));
-        $path = (string)($parts['path'] ?? $value);
-        $filename = basename(rawurldecode($path)) ?: $value;
-        $type = ($host !== '') ? self::SOURCE_URL : self::SOURCE_PATH;
-
-        // Key on host+path only, so query strings / cache-busters / fragments
-        // don't fragment a single file's counter into many rows.
-        $canonical = $host . $path;
-        $source = ($host !== '')
-            ? (($parts['scheme'] ?? 'https') . '://' . $host . $path)
-            : $path;
-
-        return [
-            'downloadKey' => $type . ':' . sha1($canonical),
-            'assetId' => null,
-            'asset' => null,
-            'sourceType' => $type,
-            'source' => $source,
-            'filename' => $filename,
         ];
     }
 

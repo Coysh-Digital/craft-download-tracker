@@ -1,5 +1,31 @@
 # Release Notes for Download Tracker
 
+## 1.2.0 - 2026-07-17
+
+### Added
+- **Import from Link Vault**, for sites moving off Masuga's Link Vault plugin.
+  It folds Link Vault's row-per-download log into this plugin's per-file
+  counters, keeping the running totals, the day-by-day history and each file's
+  last-downloaded date. Run it from **Download Tracker → Import** (admins only,
+  and only shown while Link Vault is still installed) or with
+  `php craft download-tracker/import/link-vault`.
+- The Import page shows what will happen before you commit to anything: how many
+  downloads it will import, how many files they belong to, and what it will skip.
+  `--dryRun` does the same on the command line.
+- The import runs as a queue job, so progress shows in the control panel's queue
+  indicator and a large history won't time out. It's safe to re-run: it resumes
+  from where it stopped rather than counting anything twice, so you can import,
+  leave Link Vault running a while longer, and top up before uninstalling.
+
+### Notes
+- Run the import **before** uninstalling Link Vault - it reads Link Vault's
+  tables directly, and can't recover the history once they're gone.
+- A count per file can't hold everything a row per download could. Imports keep
+  the totals and daily history, and drop the per-user, per-IP and custom-field
+  detail. Blocked leech attempts and downloads deleted in Link Vault are skipped.
+  Link Vault never recorded a user agent, so imported downloads can't be split
+  into people and crawlers, and all count as people.
+
 ## 1.1.0 - 2026-07-16
 
 ### Added

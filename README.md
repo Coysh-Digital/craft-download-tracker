@@ -33,6 +33,9 @@ on a lightweight background request that static caches always let through.
   force-“Save as…” downloads, using a signed, tamper-proof URL.
 - **Reporting built in.** A searchable, sortable Downloads screen in the control
   panel, CSV export, saved reports, and a “Top Downloads” dashboard widget.
+- **Coming from Link Vault?** Bring your download history with you - totals and
+  daily history import into the counters before you uninstall it. See
+  [Moving from Link Vault](#moving-from-link-vault).
 
 ## Requirements
 
@@ -166,6 +169,48 @@ per-environment values):
 | Require login | Only serve managed downloads to logged-in users. |
 | Signed URL lifetime | How long a managed download link stays valid (0 = forever). |
 | Daily rollup retention | How many days of per-day history to keep. |
+
+## Moving from Link Vault
+
+If you're coming from [Link Vault](https://github.com/masugadesign/link-vault-craft-cms),
+your download history can come with you. Link Vault keeps a row per download;
+this plugin keeps a count per file, and the importer folds one into the other.
+
+**Do this before you uninstall Link Vault.** The importer reads Link Vault's
+tables directly, so the history is gone once they are. Link Vault isn't modified
+or removed — you can import, check the numbers, and only then uninstall it.
+
+With both plugins installed, go to **Download Tracker → Import** (admins only;
+the page only exists while Link Vault does). It shows what it will do before you
+commit to anything, then runs in the background — progress appears in the control
+panel's queue indicator. For a very large history you may prefer the console:
+
+```sh
+php craft download-tracker/import/link-vault --dryRun   # report, change nothing
+php craft download-tracker/import/link-vault            # do it
+```
+
+It's safe to run more than once: it resumes rather than counting anything twice.
+So you can import, leave Link Vault running a little longer, and run it again to
+pick up the stragglers before uninstalling.
+
+### What comes over, and what doesn't
+
+Kept: each file's running total, its day-by-day history (within your **Daily
+rollup retention** window) and its last-downloaded date. Downloads that Link
+Vault logged against an asset stay attached to that asset, so imported history
+and future tracking share one counter.
+
+Not kept — a count per file simply has nowhere to put these:
+
+- **Who** downloaded what, and from which IP.
+- Custom fields you added to Link Vault, ZIP names, and the element each
+  download was logged against.
+- **The people/crawler split.** Link Vault never recorded a user agent, so this
+  can't be reconstructed. Every imported download counts as a person, and your
+  crawler numbers start from the day you switch over.
+- **Leech attempts**, which were blocked requests rather than downloads.
+- Downloads deleted in Link Vault, which stay deleted.
 
 ## Support
 

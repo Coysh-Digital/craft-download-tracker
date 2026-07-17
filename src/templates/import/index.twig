@@ -1,0 +1,122 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Import from Link Vault"|t('download-tracker') %}
+{% set selectedSubnavItem = 'import' %}
+
+{% set finished = preview.dateFinished is not empty %}
+{% set started = preview.imported > 0 or finished %}
+
+{% block content %}
+    <p>{{ "Link Vault stores a row for every download; Download Tracker stores a count per file. This folds one into the other, so your history survives the switch."|t('download-tracker') }}</p>
+
+    <blockquote class="note">
+        <p><strong>{{ "Run this before you uninstall Link Vault."|t('download-tracker') }}</strong>
+        {{ "It reads Link Vault's tables directly, so once the plugin is gone the history goes with it. Link Vault isn't modified or deleted — you can run this, check the numbers, and only then remove it."|t('download-tracker') }}</p>
+    </blockquote>
+
+    <h2>{{ "What will be imported"|t('download-tracker') }}</h2>
+
+    <table class="data fullwidth">
+        <tbody>
+            <tr>
+                <th scope="row">{{ "Downloads to import"|t('download-tracker') }}</th>
+                <td>{{ preview.pending|number }}</td>
+            </tr>
+            <tr>
+                <th scope="row">{{ "Files they belong to"|t('download-tracker') }}</th>
+                <td>
+                    {{ "up to {n}"|t('download-tracker', { n: preview.files|number }) }}
+                    <span class="light">{{ "— two Link Vault entries can turn out to be the same file"|t('download-tracker') }}</span>
+                </td>
+            </tr>
+            {% if preview.leech > 0 %}
+                <tr>
+                    <th scope="row">{{ "Leech attempts to skip"|t('download-tracker') }}</th>
+                    <td>
+                        {{ preview.leech|number }}
+                        <span class="light">{{ "— blocked hotlinks, never actual downloads"|t('download-tracker') }}</span>
+                    </td>
+                </tr>
+            {% endif %}
+            {% if preview.deleted > 0 %}
+                <tr>
+                    <th scope="row">{{ "Deleted entries to skip"|t('download-tracker') }}</th>
+                    <td>
+                        {{ preview.deleted|number }}
+                        <span class="light">{{ "— deleted in Link Vault, so they stay deleted"|t('download-tracker') }}</span>
+                    </td>
+                </tr>
+            {% endif %}
+            {% if started %}
+                <tr>
+                    <th scope="row">{{ "Already imported"|t('download-tracker') }}</th>
+                    <td>{{ preview.imported|number }}</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <h2>{{ "What won't survive"|t('download-tracker') }}</h2>
+
+    <p>{{ "A count per file can't hold everything a row per download could. Importing keeps the totals and the day-by-day history, and drops the rest:"|t('download-tracker') }}</p>
+
+    <ul class="bullets">
+        <li>{{ "Who downloaded what, and from which IP address. Totals are kept; the per-person and per-address detail is not."|t('download-tracker') }}</li>
+        <li>{{ "Any custom fields you added to Link Vault, along with ZIP names and the element each download was logged against."|t('download-tracker') }}</li>
+        <li>{{ "The split between people and crawlers. Link Vault never recorded a user agent, so this can't be worked out after the fact — every imported download counts as a person."|t('download-tracker') }}</li>
+        <li>{{ "Leech attempts, which were blocked requests rather than downloads."|t('download-tracker') }}</li>
+    </ul>
+
+    <p class="light">{{ "Running this twice is safe: it picks up where it left off rather than counting anything again. If Link Vault keeps logging after the import, run it again before uninstalling to catch the stragglers."|t('download-tracker') }}</p>
+
+    <h2>{{ "Run it"|t('download-tracker') }}</h2>
+
+    {% if finished %}
+        <blockquote class="note tip">
+            <p>{{ "Finished on {date}, having imported {n} downloads."|t('download-tracker', {
+                date: preview.dateFinished|datetime('short'),
+                n: preview.imported|number,
+            }) }}</p>
+        </blockquote>
+    {% endif %}
+
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        <input type="hidden" name="action" value="download-tracker/import/start">
+        {{ redirectInput('download-tracker/import') }}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit" {{ preview.pending == 0 ? 'disabled' }}>
+                {% if preview.pending == 0 %}
+                    {{ "Nothing left to import"|t('download-tracker') }}
+                {% elseif started %}
+                    {{ "Import the remaining {n} downloads"|t('download-tracker', { n: preview.pending|number }) }}
+                {% else %}
+                    {{ "Import {n} downloads"|t('download-tracker', { n: preview.pending|number }) }}
+                {% endif %}
+            </button>
+        </div>
+    </form>
+
+    <p class="light">{{ "The import runs in the background. Progress appears in the queue indicator in the header, and you can leave this page."|t('download-tracker') }}</p>
+
+    {% if started %}
+        <hr>
+
+        <h2>{{ "Start over"|t('download-tracker') }}</h2>
+
+        <p>{{ "Only useful if you've restored the database from a backup taken before the import. This forgets what was imported so the next run reads Link Vault from the beginning — it does not remove any counts, so on a database that still holds the imported numbers it would count everything twice."|t('download-tracker') }}</p>
+
+        <form method="post" accept-charset="UTF-8">
+            {{ csrfInput() }}
+            <input type="hidden" name="action" value="download-tracker/import/reset">
+            {{ redirectInput('download-tracker/import') }}
+
+            <div class="buttons">
+                <button type="submit" class="btn" data-confirm="{{ 'Forget that anything was imported? Only do this on a database restored from before the import.'|t('download-tracker') }}">
+                    {{ "Clear import progress"|t('download-tracker') }}
+                </button>
+            </div>
+        </form>
+    {% endif %}
+{% endblock %}
