@@ -313,10 +313,13 @@ class Downloads extends Component
         }
 
         $today = DateTimeHelper::currentUTCDateTime();
+        // Off a copy: `modify()` mutates in place, so modifying `$today` here
+        // would make both bounds the start date and return a single day.
+        $from = (clone $today)->modify('-' . (max(1, $days) - 1) . ' days');
 
         return $this->dailySeries(
             $identity['downloadKey'],
-            $today->modify('-' . (max(1, $days) - 1) . ' days')->format('Y-m-d'),
+            $from->format('Y-m-d'),
             $today->format('Y-m-d'),
         );
     }

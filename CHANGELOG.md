@@ -17,6 +17,14 @@
   from where it stopped rather than counting anything twice, so you can import,
   leave Link Vault running a while longer, and top up before uninstalling.
 
+### Fixed
+- The per-file detail page's date range collapsed to a single day, so the chart,
+  the day-by-day table and the "in this range" totals only ever showed one day's
+  downloads - the day the range started - instead of the whole window. The same
+  bug made `craft.downloadTracker.daily()` return one day rather than the range
+  asked for. Both affect 1.1.0, and are most visible on a file with a long
+  history, since a site with only recent downloads showed an empty range instead.
+
 ### Notes
 - Run the import **before** uninstalling Link Vault - it reads Link Vault's
   tables directly, and can't recover the history once they're gone.
