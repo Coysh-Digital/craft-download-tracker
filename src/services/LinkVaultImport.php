@@ -112,12 +112,13 @@ class LinkVaultImport extends Component
     /**
      * Returns a dry run: what an import would do, without doing any of it.
      *
-     * @return array{available: bool, lastRowId: int, maxRowId: int, imported: int, pending: int, files: int, leech: int, deleted: int, dateFinished: string|null}
+     * @return array{available: bool, lastRowId: int, maxRowId: int, imported: int, pending: int, files: int, leech: int, deleted: int, retentionDays: int, dailyCutoff: string|null, dateFinished: string|null}
      */
     public function getPreview(): array
     {
         $state = $this->getState();
         $lastRowId = (int)$state->lastRowId;
+        $retentionDays = Plugin::getInstance()->getSettings()->dailyRetentionDays;
 
         if (!$this->isAvailable()) {
             return [
@@ -129,6 +130,8 @@ class LinkVaultImport extends Component
                 'files' => 0,
                 'leech' => 0,
                 'deleted' => 0,
+                'retentionDays' => $retentionDays,
+                'dailyCutoff' => $this->_dailyCutoff(),
                 'dateFinished' => $state->dateFinished,
             ];
         }
@@ -167,6 +170,8 @@ class LinkVaultImport extends Component
                 ->where(['not', ['e.dateDeleted' => null]])
                 ->andWhere(['>', 'd.id', $lastRowId])
                 ->count('*'),
+            'retentionDays' => $retentionDays,
+            'dailyCutoff' => $this->_dailyCutoff(),
             'dateFinished' => $state->dateFinished,
         ];
     }

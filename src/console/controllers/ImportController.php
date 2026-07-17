@@ -75,6 +75,20 @@ class ImportController extends Controller
         $this->stdout("Leech attempts to skip: {$preview['leech']}\n");
         $this->stdout("Deleted entries to skip: {$preview['deleted']}\n");
 
+        // Say this before the work starts, not after: it can't be backfilled
+        // once Link Vault is gone.
+        if ($preview['dailyCutoff'] === null) {
+            $this->stdout("Day-by-day history: all of it (retention is set to keep forever).\n");
+        } else {
+            $this->stdout(
+                "Day-by-day history: only from {$preview['dailyCutoff']} onward, per your"
+                    . " {$preview['retentionDays']}-day retention setting. Older downloads still count"
+                    . " toward each file's total. Set retention to 0 first to keep the lot - it can't"
+                    . " be filled in after Link Vault is uninstalled.\n",
+                Console::FG_YELLOW,
+            );
+        }
+
         if ($this->dryRun) {
             $this->stdout("Dry run, so nothing was imported.\n", Console::FG_YELLOW);
 

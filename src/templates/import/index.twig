@@ -56,6 +56,21 @@
         </tbody>
     </table>
 
+    <h2>{{ "Day-by-day history"|t('download-tracker') }}</h2>
+
+    {% if preview.dailyCutoff is null %}
+        <p>{{ "Your daily rollup retention is set to keep history forever, so every download gets a day-by-day breakdown however far back it goes."|t('download-tracker') }}</p>
+    {% else %}
+        <blockquote class="note warning">
+            <p>{{ "Only downloads since {date} will get a day-by-day breakdown, because your daily rollup retention is set to {days} days. Older downloads still count toward each file's total — it's the per-day detail behind them that isn't kept."|t('download-tracker', {
+                date: preview.dailyCutoff|date('d M Y'),
+                days: preview.retentionDays|number,
+            }) }}</p>
+            <p>{{ "Decide before you import: this can't be filled in later. Once Link Vault is uninstalled the older per-day detail is gone for good, and raising the setting afterwards won't bring it back."|t('download-tracker') }}
+            <a href="{{ url('download-tracker/settings') }}">{{ "Change the retention setting"|t('download-tracker') }}</a> {{ "— set it to 0 to keep everything."|t('download-tracker') }}</p>
+        </blockquote>
+    {% endif %}
+
     <h2>{{ "What won't survive"|t('download-tracker') }}</h2>
 
     <p>{{ "A count per file can't hold everything a row per download could. Importing keeps the totals and the day-by-day history, and drops the rest:"|t('download-tracker') }}</p>

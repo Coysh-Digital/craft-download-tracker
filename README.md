@@ -196,10 +196,16 @@ pick up the stragglers before uninstalling.
 
 ### What comes over, and what doesn't
 
-Kept: each file's running total, its day-by-day history (within your **Daily
-rollup retention** window) and its last-downloaded date. Downloads that Link
-Vault logged against an asset stay attached to that asset, so imported history
-and future tracking share one counter.
+Kept: each file's running total, its last-downloaded date, and its day-by-day
+history. Downloads that Link Vault logged against an asset stay attached to that
+asset, so imported history and future tracking share one counter.
+
+> **Check your retention setting first.** Day-by-day history is only imported as
+> far back as **Daily rollup retention** allows (365 days by default) — beyond
+> that, downloads still count toward each file's total, but the per-day detail
+> behind them isn't kept. Set retention to `0` before importing to keep the lot.
+> This is a one-way door: once Link Vault is uninstalled the older per-day detail
+> is unrecoverable, and raising the setting later won't bring it back.
 
 Not kept — a count per file simply has nowhere to put these:
 
