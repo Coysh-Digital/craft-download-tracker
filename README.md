@@ -33,11 +33,28 @@ on a lightweight background request that static caches always let through.
   force-“Save as…” downloads, using a signed, tamper-proof URL.
 - **Reporting built in.** A searchable, sortable Downloads screen in the control
   panel, CSV export, saved reports, and a “Top Downloads” dashboard widget.
+- **Coming from Link Vault?** Bring your download history with you - totals and
+  daily history import into the counters before you uninstall it. See
+  [Moving from Link Vault](#moving-from-link-vault).
+
+## Documentation
+
+Full documentation lives at
+[coysh.digital/plugins/download-tracker/docs](https://coysh.digital/plugins/download-tracker/docs/).
+This README is the short version; the docs go deeper on installation, click
+tracking, managed links, crawlers, the Twig API, reporting, settings and the
+Link Vault import.
 
 ## Requirements
 
 - Craft CMS 5.0 or later
 - PHP 8.2 or later
+
+This is the Craft 5 release. If you're still on **Craft 4**, use the
+[`craft-4-support`](https://github.com/Coysh-Digital/craft-download-tracker/tree/craft-4-support)
+branch, which runs on Craft 4 and Craft 5 alike. It's handy if you want to import
+your Link Vault history and drop Link Vault before upgrading to Craft 5, rather
+than carrying it through the upgrade.
 
 ## Installation
 
@@ -166,6 +183,38 @@ per-environment values):
 | Require login | Only serve managed downloads to logged-in users. |
 | Signed URL lifetime | How long a managed download link stays valid (0 = forever). |
 | Daily rollup retention | How many days of per-day history to keep. |
+
+## Moving from Link Vault
+
+If you're coming from [Link Vault](https://github.com/masugadesign/link-vault-craft-cms),
+your download history can come with you. Link Vault keeps a row per download;
+this plugin keeps a count per file, and the importer folds one into the other.
+
+**Do this before you uninstall Link Vault.** The importer reads Link Vault's
+tables directly, so the history is gone once they are. Link Vault isn't modified
+or removed - you can import, check the numbers, and only then uninstall it.
+
+With both plugins installed, go to **Download Tracker → Import** (admins only;
+the page only exists while Link Vault does). It shows what it will do before you
+commit to anything, then runs in the background - progress appears in the control
+panel's queue indicator. For a very large history you may prefer the console:
+
+```sh
+php craft download-tracker/import/link-vault --dryRun   # report, change nothing
+php craft download-tracker/import/link-vault            # do it
+```
+
+It's safe to run more than once: it resumes rather than counting anything twice.
+So you can import, leave Link Vault running a little longer, and run it again to
+pick up the stragglers before uninstalling.
+
+Kept: each file's running total, its last-downloaded date, and its day-by-day
+history (as far back as your **Daily rollup retention** allows - set it to `0`
+before importing to keep the lot). Not kept: who downloaded what and from which
+IP, custom fields, and the people/crawler split, since Link Vault never recorded
+a user agent. See the
+[Link Vault import docs](https://coysh.digital/plugins/download-tracker/docs/link-vault-import)
+for the full detail.
 
 ## Support
 
