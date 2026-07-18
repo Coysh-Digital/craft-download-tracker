@@ -37,7 +37,11 @@ class DownloadTrackerVariable
      */
     public function url(Asset $asset, array $params = []): string
     {
-        $params['token'] = Plugin::getInstance()->downloads->signAsset((int)$asset->id);
+        // Note: the param is deliberately not named `token` - that's Craft's
+        // reserved route-token param (generalConfig->tokenParam). On Craft 5.9+,
+        // an unrecognised `?token=` makes Craft throw a 400 before this plugin's
+        // controller ever runs, which would break every managed download link.
+        $params['dlt'] = Plugin::getInstance()->downloads->signAsset((int)$asset->id);
 
         return UrlHelper::actionUrl('download-tracker/download', $params);
     }

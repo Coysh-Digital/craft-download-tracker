@@ -93,7 +93,7 @@ last-downloaded date:
 ```twig
 {% set record = craft.downloadTracker.record(asset) %}
 {% if record %}
-  Downloaded {{ record.count }} times, last on {{ record.dateUpdated|date('j M Y') }}.
+  Downloaded {{ record.count }} times, last on {{ record.lastDownloaded|date('j M Y') }}.
 {% endif %}
 ```
 

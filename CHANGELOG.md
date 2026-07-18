@@ -1,5 +1,19 @@
 # Release Notes for Download Tracker
 
+## 1.2.1 - 2026-07-19
+
+### Fixed
+- **Managed download links now work on Craft 5.9 and later.** The signed link
+  from `craft.downloadTracker.url()` carried its token in a `token` query
+  parameter, which collides with Craft's own reserved route-token parameter.
+  Craft 5.9 started rejecting any request whose `token` doesn't resolve to a
+  real Craft token with a `400 Bad Request`, thrown before the plugin's
+  controller ran - so every managed download returned a 400. The token now
+  travels in a `dlt` parameter instead, sidestepping Craft entirely. The
+  zero-touch click beacon was never affected; only managed `url()` links were.
+  If you embed managed links in statically-cached pages, clear those caches
+  after updating so the new links are baked in.
+
 ## 1.2.0 - 2026-07-17
 
 ### Added

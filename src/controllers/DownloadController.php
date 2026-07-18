@@ -51,7 +51,9 @@ class DownloadController extends Controller
         $plugin = Plugin::getInstance();
         $settings = $plugin->getSettings();
 
-        $token = (string)Craft::$app->getRequest()->getParam('token', '');
+        // `dlt`, not `token`: `token` is Craft's reserved route-token param, and
+        // on Craft 5.9+ an unrecognised value there 400s before this action runs.
+        $token = (string)Craft::$app->getRequest()->getParam('dlt', '');
         $assetId = $plugin->downloads->unsignAsset($token);
 
         // The route is anonymous and its URL is guessable, so scanners and stale

@@ -37,6 +37,18 @@ on a lightweight background request that static caches always let through.
   daily history import into the counters before you uninstall it. See
   [Moving from Link Vault](#moving-from-link-vault).
 
+## Screenshots
+
+The **Downloads** screen — every tracked file, its running total, the crawler
+share, and when it was last pulled, searchable and sortable, with CSV export:
+
+![The Download Tracker Downloads screen in the Craft control panel, listing files with download counts, crawler counts, and last-downloaded dates](docs/screenshots/downloads-list.png)
+
+Each file has a **detail screen** with its people-vs-crawler totals and a
+day-by-day chart over the last 30, 90 or 365 days:
+
+![A per-file detail screen showing total, people and crawler counts, a day-by-day bar chart, and a daily breakdown table](docs/screenshots/file-detail.png)
+
 ## Documentation
 
 Full documentation lives at
@@ -146,8 +158,8 @@ growth this plugin exists to avoid.
 {{ craft.downloadTracker.url(asset) }}           {# a signed, counting download link #}
 ```
 
-All of these accept an Asset, an asset ID, or a URL/path string (`url()` takes an
-Asset).
+All of these accept an Asset, an asset ID, or a URL/path string — except `url()`,
+which takes an Asset.
 
 `daily()` returns one entry per day, oldest first, with days that saw no
 downloads included as zeroes, so you can chart it without minding the gaps:
