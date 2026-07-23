@@ -68,8 +68,6 @@ on a lightweight background request that static caches always let through.
 - Reading numbers in your templates? See the [Twig API](/twig-api).
 
 ::: tip Still on Craft 4?
-This documentation covers the Craft 5 release. If you're on Craft 4, use the
-[`craft-4-support` branch](https://github.com/Coysh-Digital/craft-download-tracker/tree/craft-4-support),
-which runs on Craft 4 and Craft 5 alike. Everything in these docs applies there
-too, aside from the Craft version requirement.
+From 1.4.0, one release runs on Craft 4 and Craft 5 alike — there's no separate
+branch or version line to pick between. Everything in these docs applies to both.
 :::

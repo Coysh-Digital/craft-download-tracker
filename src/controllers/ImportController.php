@@ -1,6 +1,6 @@
 <?php
 /**
- * Download Tracker plugin for Craft CMS 5.x
+ * Download Tracker plugin for Craft CMS 4.x & 5.x
  *
  * @link      https://coysh.digital
  * @copyright Copyright (c) Coysh Digital

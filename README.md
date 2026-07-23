@@ -59,14 +59,13 @@ Link Vault import.
 
 ## Requirements
 
-- Craft CMS 5.0 or later
+- Craft CMS 4.0 or later, or Craft CMS 5.0 or later
 - PHP 8.2 or later
 
-This is the Craft 5 release. If you're still on **Craft 4**, use the
-[`craft-4-support`](https://github.com/Coysh-Digital/craft-download-tracker/tree/craft-4-support)
-branch, which runs on Craft 4 and Craft 5 alike. It's handy if you want to import
-your Link Vault history and drop Link Vault before upgrading to Craft 5, rather
-than carrying it through the upgrade.
+One release covers both: there's no separate Craft 4 branch or version line to
+pick between. It's handy if you want to import your Link Vault history and drop
+Link Vault before upgrading to Craft 5, rather than carrying it through the
+upgrade.
 
 ## Installation
 
@@ -205,6 +204,10 @@ this plugin keeps a count per file, and the importer folds one into the other.
 **Do this before you uninstall Link Vault.** The importer reads Link Vault's
 tables directly, so the history is gone once they are. Link Vault isn't modified
 or removed - you can import, check the numbers, and only then uninstall it.
+
+Still on Craft 4? This plugin runs there too, and Link Vault's tables are
+identical on both, so you can import your history and drop Link Vault *before*
+upgrading to Craft 5, rather than carrying it through the upgrade.
 
 With both plugins installed, go to **Download Tracker → Import** (admins only;
 the page only exists while Link Vault does). It shows what it will do before you

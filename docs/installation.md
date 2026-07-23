@@ -2,13 +2,12 @@
 
 ## Requirements
 
-- Craft CMS 5.0 or later
+- Craft CMS 4.0 or later, or Craft CMS 5.0 or later
 - PHP 8.2 or later
 
 ::: tip Still on Craft 4?
-This is the Craft 5 release. If you're on Craft 4, use the
-[`craft-4-support` branch](https://github.com/Coysh-Digital/craft-download-tracker/tree/craft-4-support),
-which runs on Craft 4 and Craft 5 alike. It's handy if you want to import your
+From 1.4.0, one release runs on Craft 4 and Craft 5 alike — there's no separate
+branch or version line to pick between. It's handy if you want to import your
 Link Vault history and drop Link Vault before upgrading to Craft 5, rather than
 carrying it through the upgrade.
 :::

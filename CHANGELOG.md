@@ -1,5 +1,21 @@
 # Release Notes for Download Tracker
 
+## 1.4.0 - 2026-07-23
+
+### Added
+- **Craft 4 support.** The plugin now installs on Craft 4.0 and later as well as
+  Craft 5, from the same release - there's no separate Craft 4 branch or version
+  line to choose between. Nothing in the plugin needed changing to get there:
+  every Craft API it uses exists in Craft 4 with an identical signature, and so
+  does every control-panel Twig macro, block and filter its templates rely on,
+  checked against 4.0.6 and 4.18.5 rather than assumed. PHP 8.2 stays the floor;
+  the code parses under 8.0, but 8.0 and 8.1 are both end-of-life.
+
+  This matters most for the Link Vault import. Link Vault's schema is identical
+  on its Craft 4 and Craft 5 releases, so the importer works as-is, and the
+  people who most need it are the ones still on Craft 4: they can import and
+  drop Link Vault first, rather than carrying it through a Craft 4 to 5 upgrade.
+
 ## 1.3.0 - 2026-07-23
 
 ### Added

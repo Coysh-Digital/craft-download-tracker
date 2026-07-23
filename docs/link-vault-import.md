@@ -83,12 +83,11 @@ hold. These are dropped:
 
 ## Still on Craft 4?
 
-The Link Vault import is exactly why the
-[`craft-4-support` branch](https://github.com/Coysh-Digital/craft-download-tracker/tree/craft-4-support)
-exists. Link Vault's schema is identical on its Craft 4 and Craft 5 releases, so
-the importer works the same on both. If you're still on Craft 4, you can install
-Download Tracker there, import your history, and drop Link Vault **before**
-upgrading to Craft 5, rather than carrying Link Vault through the upgrade.
+The Link Vault import is exactly why Download Tracker supports Craft 4. Link
+Vault's schema is identical on its Craft 4 and Craft 5 releases, so the importer
+works the same on both. If you're still on Craft 4, you can install Download
+Tracker there, import your history, and drop Link Vault **before** upgrading to
+Craft 5, rather than carrying Link Vault through the upgrade.
 
 ## After importing
 
