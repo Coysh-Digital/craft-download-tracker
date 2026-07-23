@@ -57,22 +57,31 @@
     </div>
 
     {# Bars drawn straight into the markup: no chart library, no request, nothing
-       to load. The <title> in each group is what gives them hover tooltips. #}
+       to load. Each day also gets a full-height, invisible hit area drawn over
+       its bar, so the <title> tooltip answers a hover anywhere in the column -
+       including on days with no downloads, which have no bar to aim at, and on
+       days whose bar is only a pixel or two tall. #}
     {% set chartWidth = 720 %}
     {% set chartHeight = 120 %}
     {% set barWidth = chartWidth / series|length %}
 
-    <svg viewBox="0 0 {{ chartWidth }} {{ chartHeight }}"
+    {% css %}
+        .dt-chart .dt-hit { fill: transparent; }
+        .dt-chart .dt-hit:hover { fill: rgba(123, 135, 148, 0.25); }
+    {% endcss %}
+
+    <svg class="dt-chart"
+         viewBox="0 0 {{ chartWidth }} {{ chartHeight }}"
          preserveAspectRatio="none"
          role="img"
          aria-label="{{ 'Downloads per day for the last {days} days'|t('download-tracker', { days: days }) }}"
          style="width:100%; height:{{ chartHeight }}px; display:block; background:var(--gray-050, #f3f7fc); border-radius:4px">
         {% for i, point in series %}
-            {% if point.count > 0 %}
-                {% set totalHeight = point.count / peak * chartHeight %}
-                {% set crawlerHeight = showCrawlers ? (point.crawlerCount / peak * chartHeight) : 0 %}
-                <g>
-                    <title>{{ point.date|date('d M Y') }} — {{ point.count|number }} {{ "downloads"|t('download-tracker') }}{% if showCrawlers %} ({{ point.userCount|number }} {{ "people"|t('download-tracker') }}, {{ point.crawlerCount|number }} {{ "crawlers"|t('download-tracker') }}){% endif %}</title>
+            {% set totalHeight = point.count / peak * chartHeight %}
+            {% set crawlerHeight = showCrawlers ? (point.crawlerCount / peak * chartHeight) : 0 %}
+            <g>
+                <title>{% if point.count > 0 %}{{ point.date|date('d M Y') }} — {{ point.count|number }} {{ "downloads"|t('download-tracker') }}{% if showCrawlers %} ({{ point.userCount|number }} {{ "people"|t('download-tracker') }}, {{ point.crawlerCount|number }} {{ "crawlers"|t('download-tracker') }}){% endif %}{% else %}{{ point.date|date('d M Y') }} — {{ "no downloads"|t('download-tracker') }}{% endif %}</title>
+                {% if point.count > 0 %}
                     {# People sit on the axis, crawlers stack above them. #}
                     <rect x="{{ i * barWidth }}" y="{{ chartHeight - (totalHeight - crawlerHeight) }}"
                           width="{{ barWidth }}" height="{{ totalHeight - crawlerHeight }}"
@@ -82,10 +91,29 @@
                               width="{{ barWidth }}" height="{{ crawlerHeight }}"
                               fill="var(--gray-300, #cdd8e4)" />
                     {% endif %}
-                </g>
-            {% endif %}
+                {% endif %}
+                {# Drawn last so it sits over the bar: this is what catches the
+                   pointer, and highlights the whole column while it's hovered. #}
+                <rect class="dt-hit" x="{{ i * barWidth }}" y="0"
+                      width="{{ barWidth }}" height="{{ chartHeight }}" />
+            </g>
         {% endfor %}
     </svg>
+
+    {# Without this the two bar colours are unexplained: the totals above name
+       people and crawlers, but nothing tied those words to the chart. #}
+    {% if showCrawlers %}
+        <div class="flex light smalltext" style="gap:16px; margin-top:8px">
+            <span class="flex" style="gap:6px; align-items:center">
+                <span style="width:10px; height:10px; border-radius:2px; background:var(--primary-color, #3f6ec6)"></span>
+                {{ "People"|t('download-tracker') }}
+            </span>
+            <span class="flex" style="gap:6px; align-items:center">
+                <span style="width:10px; height:10px; border-radius:2px; background:var(--gray-300, #cdd8e4)"></span>
+                {{ "Crawlers"|t('download-tracker') }}
+            </span>
+        </div>
+    {% endif %}
 
     <div class="flex light smalltext" style="justify-content:space-between; margin-top:4px">
         <span>{{ series|first.date|date('d M Y') }}</span>

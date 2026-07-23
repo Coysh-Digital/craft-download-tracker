@@ -20,7 +20,10 @@ Click a file in the Downloads list to open its detail page. This shows:
 
 - The file's totals, including the people and crawler split.
 - A **day-by-day chart** and table over the last **30, 90 or 365 days**, so you
-  can see how downloads for that one file have trended.
+  can see how downloads for that one file have trended. While crawlers are
+  counted separately the bars are stacked, people below and crawlers above, and
+  a legend under the chart says which is which. Hover any day - including one
+  that saw nothing - for its date and numbers.
 - A **CSV export** of that day-by-day history.
 
 How far back the day-by-day view can reach depends on your **Daily rollup

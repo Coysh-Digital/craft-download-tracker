@@ -1,5 +1,22 @@
 # Release Notes for Download Tracker
 
+## 1.3.0 - 2026-07-23
+
+### Added
+- **A legend under the day-by-day chart**, naming which colour is people and
+  which is crawlers. The totals above the chart had always split the two, but
+  nothing connected those words to the stacked bars, leaving the split to be
+  guessed at. It only appears while crawlers are counted separately, since
+  there's no split to explain otherwise.
+
+### Improved
+- **Every day in the chart now answers a hover with its date and numbers**, not
+  just the days tall enough to aim at. Each day gets a full-height, invisible
+  hit area over its bar, and highlights while hovered, so a day reads the same
+  whether it saw 400 downloads, one, or none - previously only days with a
+  download carried a tooltip at all, and on a 365-day range a quiet day's bar
+  was too small to reliably hit.
+
 ## 1.2.1 - 2026-07-19
 
 ### Fixed
