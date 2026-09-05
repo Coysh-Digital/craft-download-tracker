@@ -109,6 +109,7 @@ class Plugin extends BasePlugin
 
         $this->_registerVariable();
         $this->_registerCpRoutes();
+        $this->_registerReportingApi();
         $this->_registerPermissions();
         $this->_registerWidgets();
         $this->_registerGarbageCollection();
@@ -231,6 +232,23 @@ class Plugin extends BasePlugin
                 $event->rules['download-tracker/import'] = 'download-tracker/import/index';
 
                 $event->rules['download-tracker/settings'] = 'download-tracker/settings/index';
+            }
+        );
+    }
+
+    /**
+     * Registers the read-only reporting API's site routes.
+     *
+     * @return void
+     */
+    private function _registerReportingApi(): void
+    {
+        Event::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_SITE_URL_RULES,
+            function(RegisterUrlRulesEvent $event) {
+                $event->rules['download-tracker/v1/verify'] = 'download-tracker/api/verify';
+                $event->rules['download-tracker/v1/report'] = 'download-tracker/api/report';
             }
         );
     }

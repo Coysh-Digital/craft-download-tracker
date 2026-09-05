@@ -145,4 +145,20 @@
         size: 6,
         disabled: readOnly or 'dailyRetentionDays' in overrides,
     }) }}
+
+    <hr>
+    <h2>{{ "Reporting API"|t('download-tracker') }}</h2>
+
+    <p class="readable light">
+        {{ "Let an external reporting tool pull your aggregate download stats over a signed, read-only request. Paste the connection code from that tool below. Leave blank to keep the API off."|t('download-tracker') }}
+    </p>
+
+    {{ forms.autosuggestField({
+        label: "Connection code"|t('download-tracker'),
+        instructions: "A shared secret. Prefer an $ENV_VAR reference so it stays out of project config."|t('download-tracker'),
+        name: 'settings[reportingConnectionCode]',
+        suggestEnvVars: true,
+        value: settings.reportingConnectionCode,
+        disabled: readOnly or 'reportingConnectionCode' in overrides,
+    }) }}
 {% endblock %}
