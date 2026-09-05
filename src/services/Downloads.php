@@ -626,6 +626,72 @@ class Downloads extends Component
         return $total;
     }
 
+    /**
+     * An aggregate download report for a period, across every file: the total,
+     * the most-downloaded files, and a daily total series. Built from the daily
+     * rollup so it is period-scoped (unlike the all-time running counters).
+     *
+     * @return array{total: int, files: int, top: array<int, array{label: string, downloads: int}>, series: array<int, array{date: string, value: int}>}
+     */
+    public function reportForPeriod(string $from, string $to, int $limit = 10): array
+    {
+        $daily = DailyRecord::tableName();
+        $counts = CountRecord::tableName();
+
+        $inRange = static fn (Query $q): Query => $q
+            ->from(['d' => $daily])
+            ->andWhere(['>=', 'd.date', $from])
+            ->andWhere(['<=', 'd.date', $to]);
+
+        $total = (int) $inRange((new Query())->select(['t' => 'COALESCE(SUM([[d]].[[count]]), 0)']))->scalar();
+
+        // Top files by downloads in the period, labelled from the counter row.
+        $topRows = $inRange(
+            (new Query())->select([
+                'downloadKey' => 'd.downloadKey',
+                'downloads' => 'SUM([[d]].[[count]])',
+                'filename' => 'c.filename',
+            ])
+        )
+            ->leftJoin(['c' => $counts], '[[c]].[[downloadKey]] = [[d]].[[downloadKey]]')
+            ->groupBy(['d.downloadKey', 'c.filename'])
+            ->orderBy(['downloads' => SORT_DESC])
+            ->limit($limit)
+            ->all();
+
+        $top = array_map(static function (array $row): array {
+            $label = (string) ($row['filename'] ?? '');
+
+            return [
+                'label' => $label !== '' ? $label : (string) $row['downloadKey'],
+                'downloads' => (int) $row['downloads'],
+            ];
+        }, $topRows);
+
+        // Daily totals across all files, filled to one point per day.
+        $byDate = [];
+        foreach (
+            $inRange((new Query())->select(['date' => 'd.date', 'downloads' => 'SUM([[d]].[[count]])']))
+                ->groupBy('d.date')
+                ->all() as $row
+        ) {
+            $byDate[substr((string) $row['date'], 0, 10)] = (int) $row['downloads'];
+        }
+
+        $series = [];
+        $period = new \DatePeriod(
+            new \DateTimeImmutable($from),
+            new \DateInterval('P1D'),
+            (new \DateTimeImmutable($to))->modify('+1 day'),
+        );
+        foreach ($period as $day) {
+            $date = $day->format('Y-m-d');
+            $series[] = ['date' => $date, 'value' => $byDate[$date] ?? 0];
+        }
+
+        return ['total' => $total, 'files' => count($topRows), 'top' => $top, 'series' => $series];
+    }
+
     // Private Methods
     // =========================================================================
 

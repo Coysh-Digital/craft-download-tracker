@@ -137,6 +137,19 @@ class Settings extends Model
      */
     public int $dailyRetentionDays = 365;
 
+    /**
+     * @var string Shared secret for the read-only reporting API. When set, an
+     * external reporting tool can pull aggregate download stats over a signed
+     * request. Empty disables the API. Prefer an `$ENV_VAR` reference so the
+     * secret stays out of project config.
+     */
+    public string $reportingConnectionCode = '';
+
+    /**
+     * @var int How far a reporting-API request timestamp may drift, in seconds.
+     */
+    public int $reportingTolerance = 300;
+
     // Public Methods
     // =========================================================================
 
@@ -183,6 +196,8 @@ class Settings extends Model
         $rules[] = [['serveMode'], 'in', 'range' => [self::SERVE_MODE_AUTO, self::SERVE_MODE_REDIRECT, self::SERVE_MODE_STREAM]];
         $rules[] = [['crawlerMode'], 'in', 'range' => [self::CRAWLER_MODE_BLOCK, self::CRAWLER_MODE_SEPARATE, self::CRAWLER_MODE_IGNORE]];
         $rules[] = [['dailyRetentionDays', 'signedUrlTtl'], 'integer', 'min' => 0];
+        $rules[] = [['reportingConnectionCode'], 'string'];
+        $rules[] = [['reportingTolerance'], 'integer', 'min' => 30, 'max' => 3600];
         $rules[] = [['serveMode', 'crawlerMode', 'dailyRetentionDays'], 'required'];
 
         return $rules;

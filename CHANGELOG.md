@@ -1,5 +1,15 @@
 # Release Notes for Download Tracker
 
+## Unreleased
+
+### Added
+- **A read-only reporting API.** With a connection code set in *Settings →
+  Reporting API*, an external reporting tool can pull aggregate download stats —
+  a period total, the most-downloaded files and a daily total series — over a
+  signed, read-only request (HMAC, short timestamp window, one-shot nonce). It's
+  aggregate-only: counts and file names, no per-download rows. Leave the
+  connection code blank to keep it off.
+
 ## 1.4.0 - 2026-07-23
 
 ### Added
