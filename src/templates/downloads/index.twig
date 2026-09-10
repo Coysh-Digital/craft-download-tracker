@@ -7,12 +7,19 @@
 
 {% set sortColumns = [
     { key: 'filename', label: "File"|t('download-tracker') },
-    { key: 'count', label: "Downloads"|t('download-tracker') },
 ] %}
 
-{# Under any other crawler mode the column is always zero, so it's just noise. #}
+{# When crawlers are split out, lead with the human figure and keep the total
+   and crawler counts beside it as context. Under any other crawler mode there's
+   only the one total, so show that alone. #}
 {% if showCrawlers %}
-    {% set sortColumns = sortColumns|merge([{ key: 'crawlerCount', label: "Crawlers"|t('download-tracker') }]) %}
+    {% set sortColumns = sortColumns|merge([
+        { key: 'userCount', label: "People"|t('download-tracker') },
+        { key: 'count', label: "All downloads"|t('download-tracker') },
+        { key: 'crawlerCount', label: "Crawlers"|t('download-tracker') },
+    ]) %}
+{% else %}
+    {% set sortColumns = sortColumns|merge([{ key: 'count', label: "Downloads"|t('download-tracker') }]) %}
 {% endif %}
 
 {% set sortColumns = sortColumns|merge([{ key: 'lastDownloaded', label: "Last downloaded"|t('download-tracker') }]) %}
@@ -40,6 +47,12 @@
         {% endif %}
     </form>
 
+    {% if showCrawlers %}
+        <p class="light smalltext" style="margin-bottom:16px">
+            {{ "“People” is the human figure — the total minus the crawlers, link scanners and other bots we could identify. “All downloads” is everything that reached the file."|t('download-tracker') }}
+        </p>
+    {% endif %}
+
     {% if rows|length %}
         <table class="data fullwidth">
             <thead>
@@ -66,9 +79,12 @@
                                 <a href="{{ row.source }}" target="_blank" rel="noopener" class="go" title="{{ 'Open file'|t('download-tracker') }}"></a>
                             {% endif %}
                         </th>
-                        <td><strong>{{ row.count|number }}</strong></td>
                         {% if showCrawlers %}
+                            <td><strong>{{ row.userCount|number }}</strong></td>
+                            <td class="light" data-title="{{ 'All downloads'|t('download-tracker') }}">{{ row.count|number }}</td>
                             <td class="light" data-title="{{ 'Crawlers'|t('download-tracker') }}">{{ row.crawlerCount|number }}</td>
+                        {% else %}
+                            <td><strong>{{ row.count|number }}</strong></td>
                         {% endif %}
                         <td data-title="{{ 'Last downloaded'|t('download-tracker') }}">
                             {{ row.lastDownloaded ? row.lastDownloaded|date('d M Y, H:i') : '—' }}

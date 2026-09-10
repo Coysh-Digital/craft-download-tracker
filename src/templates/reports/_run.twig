@@ -20,7 +20,13 @@
             <thead>
                 <tr>
                     <th scope="col">{{ "File"|t('download-tracker') }}</th>
-                    <th scope="col">{{ "Downloads"|t('download-tracker') }}</th>
+                    {% if showCrawlers %}
+                        <th scope="col">{{ "People"|t('download-tracker') }}</th>
+                        <th scope="col">{{ "All downloads"|t('download-tracker') }}</th>
+                        <th scope="col">{{ "Crawlers"|t('download-tracker') }}</th>
+                    {% else %}
+                        <th scope="col">{{ "Downloads"|t('download-tracker') }}</th>
+                    {% endif %}
                     <th scope="col">{{ "Last downloaded"|t('download-tracker') }}</th>
                     <th scope="col">{{ "Type"|t('download-tracker') }}</th>
                 </tr>
@@ -35,7 +41,13 @@
                                 {{ row.filename }}
                             {% endif %}
                         </th>
-                        <td><strong>{{ row.count|number }}</strong></td>
+                        {% if showCrawlers %}
+                            <td><strong>{{ row.userCount|number }}</strong></td>
+                            <td class="light">{{ row.count|number }}</td>
+                            <td class="light">{{ row.crawlerCount|number }}</td>
+                        {% else %}
+                            <td><strong>{{ row.count|number }}</strong></td>
+                        {% endif %}
                         <td>{{ row.lastDownloaded ? row.lastDownloaded|date('d M Y, H:i') : '—' }}</td>
                         <td>{{ row.sourceType }}</td>
                     </tr>

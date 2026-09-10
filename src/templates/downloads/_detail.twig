@@ -12,18 +12,23 @@
 
 {% block content %}
     <div class="flex" style="gap:40px; margin-bottom:28px">
-        <div>
-            <div class="light smalltext">{{ "All downloads"|t('download-tracker') }}</div>
-            <div style="font-size:28px; font-weight:600; line-height:1.2">{{ total|number }}</div>
-        </div>
         {% if showCrawlers %}
             <div>
                 <div class="light smalltext">{{ "People"|t('download-tracker') }}</div>
                 <div style="font-size:28px; font-weight:600; line-height:1.2">{{ userTotal|number }}</div>
             </div>
             <div>
+                <div class="light smalltext">{{ "All downloads"|t('download-tracker') }}</div>
+                <div class="light" style="font-size:28px; font-weight:600; line-height:1.2">{{ total|number }}</div>
+            </div>
+            <div>
                 <div class="light smalltext">{{ "Crawlers"|t('download-tracker') }}</div>
                 <div class="light" style="font-size:28px; font-weight:600; line-height:1.2">{{ crawlerTotal|number }}</div>
+            </div>
+        {% else %}
+            <div>
+                <div class="light smalltext">{{ "Downloads"|t('download-tracker') }}</div>
+                <div style="font-size:28px; font-weight:600; line-height:1.2">{{ total|number }}</div>
             </div>
         {% endif %}
         <div>
@@ -51,8 +56,11 @@
             {% endfor %}
         </div>
         <span class="light smalltext">
-            {{ "{count} in this range"|t('download-tracker', { count: rangeTotal|number }) }}
-            {%- if showCrawlers %} · {{ "{count} people"|t('download-tracker', { count: rangeUserTotal|number }) }} · {{ "{count} crawlers"|t('download-tracker', { count: rangeCrawlerTotal|number }) }}{% endif %}
+            {% if showCrawlers %}
+                {{- "{count} people"|t('download-tracker', { count: rangeUserTotal|number }) }} · {{ "{count} downloads in all"|t('download-tracker', { count: rangeTotal|number }) }} · {{ "{count} crawlers"|t('download-tracker', { count: rangeCrawlerTotal|number }) -}}
+            {% else %}
+                {{- "{count} in this range"|t('download-tracker', { count: rangeTotal|number }) -}}
+            {% endif %}
         </span>
     </div>
 
@@ -132,10 +140,12 @@
             <thead>
                 <tr>
                     <th scope="col">{{ "Date"|t('download-tracker') }}</th>
-                    <th scope="col">{{ "Downloads"|t('download-tracker') }}</th>
                     {% if showCrawlers %}
                         <th scope="col">{{ "People"|t('download-tracker') }}</th>
+                        <th scope="col">{{ "All downloads"|t('download-tracker') }}</th>
                         <th scope="col">{{ "Crawlers"|t('download-tracker') }}</th>
+                    {% else %}
+                        <th scope="col">{{ "Downloads"|t('download-tracker') }}</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -143,10 +153,12 @@
                 {% for point in daysWithDownloads %}
                     <tr>
                         <th scope="row">{{ point.date|date('d M Y') }}</th>
-                        <td><strong>{{ point.count|number }}</strong></td>
                         {% if showCrawlers %}
-                            <td>{{ point.userCount|number }}</td>
+                            <td><strong>{{ point.userCount|number }}</strong></td>
+                            <td class="light">{{ point.count|number }}</td>
                             <td class="light">{{ point.crawlerCount|number }}</td>
+                        {% else %}
+                            <td><strong>{{ point.count|number }}</strong></td>
                         {% endif %}
                     </tr>
                 {% endfor %}

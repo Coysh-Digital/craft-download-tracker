@@ -82,6 +82,8 @@ class TopDownloads extends Widget
      */
     public function getBodyHtml(): ?string
     {
+        $settings = Plugin::getInstance()->getSettings();
+        $showCrawlers = $settings->tracksCrawlersSeparately();
         $criteria = [];
 
         if ($this->days > 0) {
@@ -90,10 +92,20 @@ class TopDownloads extends Widget
                 ->format('Y-m-d');
         }
 
-        $rows = Plugin::getInstance()->downloads->topDownloads($this->limit, $criteria);
+        // Rank and lead by the human figure when crawlers are split out, so the
+        // widget shows real demand rather than people-plus-bots.
+        if ($showCrawlers) {
+            $criteria['orderBy'] = 'userCount';
+            $criteria['sort'] = 'desc';
+            $criteria['limit'] = $this->limit;
+            $rows = Plugin::getInstance()->downloads->query($criteria);
+        } else {
+            $rows = Plugin::getInstance()->downloads->topDownloads($this->limit, $criteria);
+        }
 
         return Craft::$app->getView()->renderTemplate('download-tracker/_widgets/top-downloads', [
             'rows' => $rows,
+            'showCrawlers' => $showCrawlers,
         ]);
     }
 

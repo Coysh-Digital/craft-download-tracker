@@ -173,6 +173,7 @@ class ReportsController extends Controller
             'report' => $report,
             'rows' => $plugin->downloads->query($criteria),
             'canManage' => Craft::$app->getUser()->checkPermission(Plugin::PERMISSION_MANAGE_REPORTS),
+            'showCrawlers' => $plugin->getSettings()->tracksCrawlersSeparately(),
         ]);
     }
 
@@ -212,9 +213,10 @@ class ReportsController extends Controller
     {
         $request = Craft::$app->getRequest();
 
-        $orderBy = (string)$request->getBodyParam('orderBy', 'count');
-        if (!in_array($orderBy, ['count', 'lastDownloaded', 'filename'], true)) {
-            $orderBy = 'count';
+        $default = Plugin::getInstance()->getSettings()->tracksCrawlersSeparately() ? 'userCount' : 'count';
+        $orderBy = (string)$request->getBodyParam('orderBy', $default);
+        if (!in_array($orderBy, ['count', 'userCount', 'lastDownloaded', 'filename'], true)) {
+            $orderBy = $default;
         }
 
         $sort = strtolower((string)$request->getBodyParam('sort', 'desc')) === 'asc' ? 'asc' : 'desc';
