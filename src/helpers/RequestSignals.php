@@ -51,15 +51,17 @@ final class RequestSignals
      */
     private const NAMED_CRAWLERS = [
         // Search engines
-        'googlebot', 'google-inspectiontool', 'storebot-google', 'bingbot',
-        'duckduckbot', 'yandexbot', 'baiduspider', 'applebot', 'slurp',
-        'petalbot', 'seznambot', 'sogou', 'exabot', 'qwantify', 'neevabot',
+        'googlebot', 'google-inspectiontool', 'storebot-google', 'googleother',
+        'bingbot', 'duckduckbot', 'yandexbot', 'baiduspider', 'applebot',
+        'slurp', 'petalbot', 'seznambot', 'sogou', 'exabot', 'qwantify',
+        'neevabot',
         // AI training and retrieval
         'google-extended', 'gptbot', 'oai-searchbot', 'chatgpt-user',
         'claudebot', 'claude-web', 'claude-searchbot', 'claude-user',
         'anthropic-ai', 'perplexitybot', 'perplexity-user', 'ccbot',
         'bytespider', 'amazonbot', 'meta-externalagent', 'meta-externalfetcher',
-        'facebookbot', 'applebot-extended', 'diffbot', 'omgili', 'omgilibot',
+        'meta-webindexer', 'facebookbot', 'applebot-extended', 'diffbot',
+        'omgili', 'omgilibot',
         'timpibot', 'youbot', 'cohere-ai', 'cohere-training-data-crawler',
         'imagesiftbot', 'ai2bot', 'firecrawl', 'mistralai-user',
         // Link unfurlers and social previews
@@ -95,6 +97,37 @@ final class RequestSignals
 
     // Public Methods
     // =========================================================================
+
+    /**
+     * Returns whether a candidate token is already covered by the built-in
+     * detection - either it matches the generic pattern, or one of the named
+     * crawler tokens is a substring of it (so any User-Agent carrying the
+     * candidate is already caught). Used when distilling third-party crawler
+     * lists, to keep only the tokens that add coverage.
+     *
+     * @param string $token
+     * @return bool
+     */
+    public static function alreadyDetected(string $token): bool
+    {
+        $token = strtolower(trim($token));
+
+        if ($token === '') {
+            return true;
+        }
+
+        if (preg_match(self::GENERIC_PATTERN, $token)) {
+            return true;
+        }
+
+        foreach (self::NAMED_CRAWLERS as $named) {
+            if (str_contains($token, $named)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * Classifies a request from its raw signals.

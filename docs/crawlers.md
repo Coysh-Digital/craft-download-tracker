@@ -39,8 +39,31 @@ count. If it later turns into an actual click, that click is what gets counted.
 ## How detection works
 
 The plugin knows the well-known search, AI, social and monitoring crawlers by
-name, and catches most of the rest by their User-Agent. For anything else you
-spot in your own server logs, add a token to **Extra crawler user agents**.
+name, and catches most of the rest by their User-Agent. On top of that it ships
+a distilled list of around a thousand extra crawler tokens, so lesser-known bots
+are recognised without any setup. For anything still specific to your own server
+logs, add a token to **Extra crawler user agents**.
+
+### The distilled crawler list
+
+The extra list is drawn from three community-maintained sources -
+[Kikobeats/top-crawler-agents](https://github.com/Kikobeats/top-crawler-agents),
+[monperrus/crawler-user-agents](https://github.com/monperrus/crawler-user-agents)
+and [matomo-org/device-detector](https://github.com/matomo-org/device-detector) -
+distilled down to just the distinctive tokens. Everything the plugin already
+catches (any User-Agent containing `bot`, `crawl`, `spider` and the like),
+generic words, and browser or in-app tokens that could match real people are all
+dropped, so the list stays small and never turns a person into a crawler.
+
+A baseline list ships with the plugin. Admins can update it from **Download
+Tracker → Crawlers**, which shows how many tokens are in the list and when it was
+last refreshed, and offers a **Refresh & apply now** button that re-downloads the
+three sources, re-distils them, and applies the result immediately. The same runs
+headless as `craft download-tracker/crawlers/refresh`, for a scheduled task.
+
+The distilled tokens are always **counted separately**, never used to block - a
+list this broad is more likely to mis-match than the hand-picked names, and a
+miscount is safe to correct after the fact where a refused download isn't.
 
 Tokens are matched case-insensitively as plain substrings, not patterns. If your
 logs show a bot identifying itself as something containing `acmebot`, add

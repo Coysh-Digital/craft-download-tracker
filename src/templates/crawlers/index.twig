@@ -1,0 +1,80 @@
+{% extends "_layouts/cp" %}
+
+{% set title = "Crawlers"|t('download-tracker') %}
+{% set selectedSubnavItem = 'crawlers' %}
+
+{% block content %}
+    <p style="max-width:60em">
+        {{ "Download Tracker knows the common search, AI, social and monitoring crawlers by name, and catches most others by their User-Agent. On top of that it carries a distilled list of extra crawler tokens drawn from three community-maintained sources, so lesser-known bots are recognised too. These are only ever counted separately from people — never blocked — so a wrong match miscounts rather than breaking a download."|t('download-tracker') }}
+    </p>
+
+    <div class="flex" style="gap:40px; margin:24px 0 28px">
+        <div>
+            <div class="light smalltext">{{ "Extra tokens in the list"|t('download-tracker') }}</div>
+            <div style="font-size:28px; font-weight:600; line-height:1.2">{{ status.count|number }}</div>
+        </div>
+        <div>
+            <div class="light smalltext">{{ "Source"|t('download-tracker') }}</div>
+            <div style="font-size:16px; line-height:1.2; padding-top:10px">
+                {{ status.usingBaseline
+                    ? "Bundled baseline"|t('download-tracker')
+                    : "Refreshed from upstream"|t('download-tracker') }}
+            </div>
+        </div>
+        <div>
+            <div class="light smalltext">{{ "Last refreshed"|t('download-tracker') }}</div>
+            <div style="font-size:16px; line-height:1.2; padding-top:10px">
+                {{ status.refreshedAt ? status.refreshedAt|datetime('short') : "—"|t('download-tracker') }}
+            </div>
+        </div>
+    </div>
+
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('download-tracker/crawlers/refresh') }}
+        {{ redirectInput('download-tracker/crawlers') }}
+        <button type="submit" class="btn submit">{{ "Refresh and apply now"|t('download-tracker') }}</button>
+        <span class="light smalltext" style="margin-left:10px">
+            {{ "Downloads the latest lists, distils them, and applies the result immediately."|t('download-tracker') }}
+        </span>
+    </form>
+
+    <hr>
+
+    <h2>{{ "Sources"|t('download-tracker') }}</h2>
+    <p class="light smalltext" style="max-width:60em; margin-top:-6px">
+        {{ "Only the distinctive crawler tokens are kept. Anything the plugin already catches — every User-Agent containing bot, crawl, spider and the like — is dropped, along with generic words and browser or in-app tokens that could match real people, so the list stays small and safe."|t('download-tracker') }}
+    </p>
+
+    <table class="data fullwidth" style="max-width:60em">
+        <thead>
+            <tr>
+                <th scope="col">{{ "Source"|t('download-tracker') }}</th>
+                <th scope="col">{{ "Last refresh"|t('download-tracker') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if status.sources|length %}
+                {% for s in status.sources %}
+                    <tr>
+                        <th scope="row">{{ s.name }}</th>
+                        <td>
+                            {% if s.ok %}
+                                <span data-icon="check" style="color:var(--enabled-color, #27ab83)"></span> {{ s.note }}
+                            {% else %}
+                                <span data-icon="alert" style="color:var(--error-color, #cf1124)"></span> {{ "unreachable"|t('download-tracker') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                {% for name in sourceUrls %}
+                    <tr>
+                        <th scope="row">{{ name }}</th>
+                        <td><span class="light">{{ "bundled baseline — not refreshed yet"|t('download-tracker') }}</span></td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+{% endblock %}
