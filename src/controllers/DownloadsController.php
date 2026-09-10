@@ -189,9 +189,13 @@ class DownloadsController extends Controller
     {
         $request = Craft::$app->getRequest();
 
-        $orderBy = (string)$request->getParam('orderBy', 'count');
+        // Lead with the human figure when crawlers are being split out, so the
+        // list ranks by real demand rather than by people-plus-bots. With no
+        // split there's only the one total, so that stays the default.
+        $default = Plugin::getInstance()->getSettings()->tracksCrawlersSeparately() ? 'userCount' : 'count';
+        $orderBy = (string)$request->getParam('orderBy', $default);
         if (!in_array($orderBy, ['count', 'crawlerCount', 'userCount', 'lastDownloaded', 'filename'], true)) {
-            $orderBy = 'count';
+            $orderBy = $default;
         }
 
         $sort = strtolower((string)$request->getParam('sort', 'desc')) === 'asc' ? 'asc' : 'desc';

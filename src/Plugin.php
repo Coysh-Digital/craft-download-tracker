@@ -39,6 +39,7 @@ use yii\base\Event;
  * @property-read Downloads $downloads
  * @property-read Reports $reports
  * @property-read LinkVaultImport $linkVaultImport
+ * @property-read \coyshdigital\downloadtracker\services\Crawlers $crawlers
  *
  * @author Coysh Digital
  * @since 1.0.0
@@ -157,6 +158,11 @@ class Plugin extends BasePlugin
                 ];
             }
 
+            $item['subnav']['crawlers'] = [
+                'label' => Craft::t('download-tracker', 'Crawlers'),
+                'url' => 'download-tracker/crawlers',
+            ];
+
             $item['subnav']['settings'] = [
                 'label' => Craft::t('download-tracker', 'Settings'),
                 'url' => 'download-tracker/settings',
@@ -230,6 +236,8 @@ class Plugin extends BasePlugin
                 $event->rules['download-tracker/reports/<reportId:\d+>/run'] = 'download-tracker/reports/run';
 
                 $event->rules['download-tracker/import'] = 'download-tracker/import/index';
+
+                $event->rules['download-tracker/crawlers'] = 'download-tracker/crawlers/index';
 
                 $event->rules['download-tracker/settings'] = 'download-tracker/settings/index';
             }

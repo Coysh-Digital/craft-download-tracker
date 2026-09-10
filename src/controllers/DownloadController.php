@@ -70,7 +70,7 @@ class DownloadController extends Controller
             return $this->_notFound();
         }
 
-        $signal = RequestSignals::classifyCurrentRequest($settings->normalizedCrawlerUserAgents());
+        $signal = RequestSignals::classifyCurrentRequest($plugin->crawlers->classificationTokens());
 
         // Refuse before the login check: there's no sense bouncing a crawler we're
         // about to turn away through a login round-trip first.

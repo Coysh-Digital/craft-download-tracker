@@ -57,9 +57,10 @@ class TrackController extends Controller
     public function actionHit(): Response
     {
         $request = Craft::$app->getRequest();
-        $settings = Plugin::getInstance()->getSettings();
+        $plugin = Plugin::getInstance();
+        $settings = $plugin->getSettings();
 
-        $signal = RequestSignals::classifyCurrentRequest($settings->normalizedCrawlerUserAgents());
+        $signal = RequestSignals::classifyCurrentRequest($plugin->crawlers->classificationTokens());
 
         // The beacon serves nothing, so there's nothing to refuse: a crawler that
         // would be blocked on the served route just gets the same empty 204 as

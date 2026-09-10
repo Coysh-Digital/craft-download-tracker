@@ -1,14 +1,50 @@
 # Release Notes for Download Tracker
 
-## Unreleased
+## 1.5.0 - 2026-09-10
+
+This release is about trusting your download numbers. It shows the real human
+count first, instead of a total quietly padded by bots, and it gets a lot better
+at telling the two apart.
+
+### Changed
+- **Your stats now lead with people, not bots.** A download total has always
+  counted real visitors and automated crawlers together — search engines, AI
+  bots, social-media link scanners and the like. That made a big number easy to
+  read as "this many people downloaded it" when a large slice was never a person
+  at all. Now, wherever a figure appears — the Downloads list, each file's own
+  page, saved reports and the Top Downloads dashboard widget — the **People**
+  figure comes first, and the lists sort by it. The all-in total and the crawler
+  count still sit right beside it, so nothing is hidden; the honest number just
+  leads.
 
 ### Added
-- **A read-only reporting API.** With a connection code set in *Settings →
-  Reporting API*, an external reporting tool can pull aggregate download stats —
-  a period total, the most-downloaded files and a daily total series — over a
-  signed, read-only request (HMAC, short timestamp window, one-shot nonce). It's
-  aggregate-only: counts and file names, no per-download rows. Leave the
-  connection code blank to keep it off.
+- **Much sharper bot detection, built in.** The plugin already knew the big-name
+  crawlers; now it also ships a list of around a thousand lesser-known ones, so
+  they're caught automatically with nothing for you to set up. The list is drawn
+  from three well-respected, community-maintained crawler databases and then
+  trimmed hard — anything already detected, plain everyday words, and the
+  signatures of real browsers and phone apps are all left out. The result is a
+  small, careful list that only ever catches *more* bots, and won't mistake a
+  genuine visitor for one.
+- **A new Crawlers page to keep that list fresh.** Under *Download Tracker →
+  Crawlers*, admins can see how many crawlers are in the list and when it was
+  last updated, and press **Refresh and apply now** to pull the latest versions
+  of those databases and put them to work straight away. Prefer automation? The
+  same job runs from the command line, so you can schedule it.
+- **Two more crawlers known by name.** Google's "GoogleOther" and Meta's web
+  indexer are now recognised directly. Both announce themselves, but weren't on
+  the built-in list before, so their visits had been counting as people.
+- **A read-only reporting API.** Set a connection code under *Settings →
+  Reporting API* and an outside tool — a dashboard, a spreadsheet, a scheduled
+  report — can read your headline download stats: a total for a chosen period,
+  the most-downloaded files, and a day-by-day series. It only ever reads, only
+  ever returns summary numbers (counts and file names, never individual
+  downloads), and every request is signed and short-lived. Leave the code blank
+  to keep it switched off.
+
+A note on safety: detected crawlers are still only ever *counted separately* from
+people, never blocked — so even a wrong guess can only nudge a number, never
+break someone's download.
 
 ## 1.4.0 - 2026-07-23
 

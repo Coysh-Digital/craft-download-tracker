@@ -10,7 +10,13 @@
                             {{ row.filename }}
                         {% endif %}
                     </td>
-                    <td class="rightalign"><strong>{{ row.count|number }}</strong></td>
+                    {% if showCrawlers %}
+                        <td class="rightalign" title="{{ '{count} downloads in all, {crawlers} crawlers'|t('download-tracker', { count: row.count|number, crawlers: row.crawlerCount|number }) }}">
+                            <strong>{{ row.userCount|number }}</strong>
+                        </td>
+                    {% else %}
+                        <td class="rightalign"><strong>{{ row.count|number }}</strong></td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </tbody>
