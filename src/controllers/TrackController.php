@@ -60,7 +60,10 @@ class TrackController extends Controller
         $plugin = Plugin::getInstance();
         $settings = $plugin->getSettings();
 
-        $signal = RequestSignals::classifyCurrentRequest($plugin->crawlers->classificationTokens());
+        $signal = RequestSignals::classifyCurrentRequest(
+            $settings->normalizedCrawlerUserAgents(),
+            $plugin->crawlers->tokens(),
+        );
 
         // The beacon serves nothing, so there's nothing to refuse: a crawler that
         // would be blocked on the served route just gets the same empty 204 as
@@ -69,7 +72,7 @@ class TrackController extends Controller
             return $this->_noContent();
         }
 
-        $isCrawler = $signal === RequestSignals::SIGNAL_CRAWLER;
+        $isCrawler = RequestSignals::isCrawler($signal);
 
         $id = $request->getParam('id');
         $url = $request->getParam('url');
@@ -87,7 +90,15 @@ class TrackController extends Controller
 
         if ($file !== null) {
             try {
-                Plugin::getInstance()->downloads->increment($file, [], $downloadFlag, $isCrawler);
+                // Fingerprinted, so a double-click or a retried beacon within the
+                // duplicate window folds into the click that preceded it.
+                $plugin->downloads->increment(
+                    $file,
+                    [],
+                    $downloadFlag,
+                    $isCrawler,
+                    RequestSignals::fingerprintCurrentRequest(),
+                );
             } catch (\Throwable $e) {
                 // Never let a transient DB hiccup turn a fire-and-forget beacon
                 // into a 500; just log it and return no content.

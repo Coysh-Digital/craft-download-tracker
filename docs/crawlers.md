@@ -20,6 +20,20 @@ detected as coming from a crawler:
   and streams nothing. This only applies to [managed links](/managed-links): the
   click beacon has no file to withhold, so it simply doesn't count the hit.
 
+### Firm and soft signals
+
+Not every crawler signal is trusted equally. A crawler that announces itself by
+name, a User-Agent that matches one of your own **Extra crawler user agents**, or
+one carrying a generic giveaway like `bot` or `crawl`, is a **firm** signal: under
+**Block with a 403** it's refused.
+
+Two other signals are **soft**: a match from the distilled third-party token list
+(below), and a browser that can't be what it says it is (also below). A soft
+signal is counted on the crawler side of the split, exactly like a firm one, but
+it is never blocked, whatever **Crawler downloads** is set to. Both are broader
+than the hand-picked names and so more likely to mis-match, and a miscount can be
+corrected after the fact where a refused download can't.
+
 ### Why "count separately" is the safe default
 
 Blocking trusts the crawler detection completely. A User-Agent that's wrongly
@@ -61,9 +75,10 @@ last refreshed, and offers a **Refresh & apply now** button that re-downloads th
 three sources, re-distils them, and applies the result immediately. The same runs
 headless as `craft download-tracker/crawlers/refresh`, for a scheduled task.
 
-The distilled tokens are always **counted separately**, never used to block - a
-list this broad is more likely to mis-match than the hand-picked names, and a
-miscount is safe to correct after the fact where a refused download isn't.
+The distilled tokens are a [soft signal](#firm-and-soft-signals): always
+**counted separately**, never used to block. A list this broad is more likely to
+mis-match than the hand-picked names, and a miscount is safe to correct after the
+fact where a refused download isn't.
 
 Tokens are matched case-insensitively as plain substrings, not patterns. If your
 logs show a bot identifying itself as something containing `acmebot`, add
@@ -77,6 +92,65 @@ examplecrawler
 Substrings are used rather than regular expressions on purpose: a pattern would
 have to run on every download, and a substring check is both cheaper and harder
 to get wrong.
+
+### Browsers that can't be what they claim
+
+The traffic that inflates download numbers most is rarely a crawler that announces
+itself. It's the scripts, scanners and proxies that borrow a real browser's
+User-Agent: email security tools that open every link in a message before it
+reaches the reader, corporate proxies and antivirus sandboxes that re-fetch a
+file to inspect it, scrapers that set a Chrome User-Agent to blend in. By their
+User-Agent alone, they are people.
+
+Modern browsers give them away. Every current Chrome, Edge, Firefox and Safari
+release sends a set of [Fetch Metadata](https://developer.mozilla.org/en-US/docs/Glossary/Fetch_metadata_request_header)
+headers (`Sec-Fetch-Mode`, `Sec-Fetch-Site`, `Sec-Fetch-Dest`) with every request
+to a secure site. The browser sets them itself; page scripts can't remove them.
+So a request whose User-Agent names, say, Chrome 120, and which arrives with none
+of those headers, was not sent by Chrome 120. Download Tracker treats it as a
+[soft](#firm-and-soft-signals) crawler signal: counted on the crawler side, never
+blocked.
+
+The check is deliberately narrow, so it can only catch a User-Agent that is
+lying, never doubt one that isn't:
+
+- It only applies on HTTPS. Browsers don't send Fetch Metadata to plain-HTTP
+  sites, so their absence there means nothing.
+- It only applies when the User-Agent names a browser *and* a version known to
+  send the headers: Chromium 80+, Firefox 90+, Safari 17+, and any browser on
+  iOS 17+. An older release, an in-app WebView with no version token, or a
+  browser the plugin doesn't recognise is treated exactly as before.
+
+If a proxy in front of your site strips `Sec-Fetch-*` headers, every browser
+visitor will read as a suspect. That's unusual, but if your crawler share jumps
+to near 100% after updating, check the proxy before anything else.
+
+## One download, several requests
+
+Counting is also about *what* arrives, not only *who* sent it. On the
+[managed download route](/managed-links), a single click often reaches the plugin
+as several HTTP requests:
+
+- A browser's built-in PDF viewer opens the file, then pulls pages on demand with
+  `Range` requests as the reader scrolls.
+- A media player seeks within an audio file the same way.
+- A download manager probes with a `HEAD` request and then fetches the file over
+  several connections at once, each a `Range` request for its own slice.
+- A person double-clicks, or a flaky connection makes the browser retry.
+
+Before 1.6.0 every one of those requests counted as a download. Now:
+
+- A `HEAD` or `OPTIONS` request is served but never counted. It fetches no bytes.
+- A `Range` request that doesn't start at byte 0 is served but never counted. It
+  continues a download that has already been counted.
+- Within the **Duplicate window** (60 seconds by default), repeat hits on the
+  same file from the same visitor count once, on both routes. The window is kept
+  in Craft's cache under a one-way hash of the visitor's address and User-Agent,
+  so it costs no database rows and keeps nothing about the visitor. Set it to
+  `0` to count every request, as earlier versions did.
+
+Together these mean the counter answers "how many times was this file
+downloaded?" rather than "how many HTTP requests did it receive?".
 
 ## What isn't recorded
 

@@ -17,6 +17,7 @@ settings in version control.
 | Track non-asset files | `trackUnresolvedFiles` | `false` | Also count links that don't resolve to a Craft asset. Off keeps the counter table bounded. |
 | Crawler downloads | `crawlerMode` | `separate` | How crawler downloads are handled: `separate`, `ignore`, or `block`. See [Crawlers](/crawlers). |
 | Extra crawler user agents | `crawlerUserAgents` | `[]` | Extra User-Agent tokens to treat as crawlers, on top of the built-in list. |
+| Duplicate window | `dedupeWindow` | `60` | Seconds within which repeat hits on one file from the same visitor count as a single download. `0` counts every request. See [Crawlers](/crawlers#one-download-several-requests). |
 | Serve mode | `serveMode` | `auto` | How managed links deliver files: `auto`, `redirect`, or `stream`. See [Managed links](/managed-links). |
 | Force download | `forceDownload` | `false` | Serve managed downloads as an attachment ("Save as..."). |
 | Require login | `requireLoginToServe` | `false` | Only serve managed downloads to logged-in users. |
@@ -94,6 +95,20 @@ Leave this at `0` when managed links are embedded in statically cached pages, so
 a cached link doesn't expire while the page is still being served. Set a value
 when links are only rendered on uncached pages, such as gated account pages. See
 [Managed links](/managed-links#signed-url-lifetime).
+
+### Duplicate window
+
+A single click rarely reaches the plugin as a single request. A browser's PDF
+viewer pulls a file in pieces with `Range` requests, a download manager opens
+several connections at once, a person double-clicks, a beacon is retried. The
+duplicate window folds those back into the one download they were: repeat hits on
+the same file from the same visitor (same address and User-Agent) within the
+window aren't counted again.
+
+The window lives in Craft's cache and expires on its own, so it adds no database
+rows and keeps nothing about the visitor beyond a one-way hash for those seconds.
+Set it to `0` to switch it off and count every request, as versions before 1.6.0
+did. See [Crawlers](/crawlers#one-download-several-requests) for the full picture.
 
 ### Crawler downloads
 

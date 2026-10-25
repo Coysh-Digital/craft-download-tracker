@@ -10,7 +10,6 @@ namespace coyshdigital\downloadtracker\services;
 
 use Craft;
 use coyshdigital\downloadtracker\helpers\CrawlerTokens;
-use coyshdigital\downloadtracker\Plugin;
 use craft\helpers\FileHelper;
 use craft\helpers\Json;
 use yii\base\Component;
@@ -59,20 +58,6 @@ class Crawlers extends Component
 
     // Public Methods
     // =========================================================================
-
-    /**
-     * Returns the full set of extra crawler tokens for classification: the
-     * admin's own tokens plus the distilled third-party list.
-     *
-     * @return string[]
-     */
-    public function classificationTokens(): array
-    {
-        return array_values(array_unique(array_merge(
-            Plugin::getInstance()->getSettings()->normalizedCrawlerUserAgents(),
-            $this->tokens(),
-        )));
-    }
 
     /**
      * Returns the effective distilled token list - the refreshed one if it

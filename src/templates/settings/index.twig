@@ -95,6 +95,16 @@
         disabled: readOnly or 'trackUnresolvedFiles' in overrides,
     }) }}
 
+    {{ forms.textField({
+        type: 'number',
+        label: "Duplicate window (seconds)"|t('download-tracker'),
+        instructions: "One click often reaches the plugin as several requests: a PDF viewer pulling pages, a download manager on many connections, a double-click, a retry. Repeat hits on the same file from the same visitor within this many seconds count as one download. 0 counts every request."|t('download-tracker'),
+        name: 'settings[dedupeWindow]',
+        value: settings.dedupeWindow,
+        size: 6,
+        disabled: readOnly or 'dedupeWindow' in overrides,
+    }) }}
+
     <hr>
     <h2>{{ "Served downloads"|t('download-tracker') }}</h2>
     <p class="light" style="max-width:48em">{{ "These apply to the optional craft.downloadTracker.url(asset) route, used for gated, private, or forced downloads."|t('download-tracker') }}</p>

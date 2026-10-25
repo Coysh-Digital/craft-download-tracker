@@ -24,7 +24,10 @@ on a lightweight background request that static caches always let through.
   you see trends over time, and old rows are pruned automatically. Every file has
   a detail screen with its day-by-day chart, table and CSV export.
 - **People and crawlers, told apart.** Count crawler downloads separately from
-  human ones, ignore them, or block them outright with a 403.
+  human ones, ignore them, or block them outright with a 403. Scripts wearing a
+  browser's User-Agent are caught too, by the headers a real browser always sends.
+- **Downloads, not requests.** A PDF viewer paging through a file, a download
+  manager on eight connections, or a double-click is one download, not nine.
 - **Works with static caching.** Counting happens on a background request, so it
   keeps working on pages served straight from a Blitz (or similar) cache.
 - **Zero-touch setup.** Turn it on and it starts counting your existing download

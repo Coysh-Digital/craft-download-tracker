@@ -1,7 +1,7 @@
 {
     "name": "coysh-digital/craft-download-tracker",
     "description": "Lightweight, static-cache-friendly download tracking for Craft CMS - counts downloads per file with an atomic counter (no element-per-download bloat).",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "type": "craft-plugin",
     "keywords": [
         "craft",
@@ -33,11 +33,17 @@
     },
     "require-dev": {
         "craftcms/ecs": "dev-main",
-        "craftcms/phpstan": "dev-main"
+        "craftcms/phpstan": "dev-main",
+        "phpunit/phpunit": "^10.5"
     },
     "autoload": {
         "psr-4": {
             "coyshdigital\\downloadtracker\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "coyshdigital\\downloadtracker\\tests\\": "tests/"
         }
     },
     "extra": {
@@ -67,6 +73,7 @@
     "scripts": {
         "check-cs": "ecs check --ansi",
         "fix-cs": "ecs check --fix --ansi",
-        "phpstan": "phpstan analyse --memory-limit=1G"
+        "phpstan": "phpstan analyse --memory-limit=1G",
+        "test": "phpunit"
     }
 }
