@@ -1,5 +1,62 @@
 # Release Notes for Download Tracker
 
+## 1.6.0 - 2026-10-25
+
+This release makes the counter answer "how many times was this file downloaded?"
+rather than "how many HTTP requests did it receive?", and catches the automated
+traffic that borrows a real browser's User-Agent. If your numbers have looked
+too good to be true, this is why, and they should settle after updating.
+
+### Changed
+- **One download now counts once, however many requests it takes.** A single
+  click on a managed download link often reaches the plugin as several requests:
+  a browser's PDF viewer opens the file and then pulls pages on demand, a media
+  player seeks, a download manager probes with a `HEAD` and then fetches the file
+  over several connections at once, a person double-clicks. Every one of those
+  used to count as a download. Now a `HEAD` or `OPTIONS` request is served but not
+  counted, a `Range` request that picks the file up part-way through is served
+  but not counted, and repeat hits on the same file from the same visitor within
+  a new **Duplicate window** (60 seconds by default, on both routes) count as the
+  one download they were. The window lives in Craft's cache under a one-way hash,
+  so it adds no database rows and keeps nothing about the visitor. Set it to `0`
+  to count every request as before.
+- **The distilled crawler list no longer blocks.** The documentation has always
+  said the thousand-odd distilled third-party tokens are only ever counted
+  separately, never used to refuse a download, because a list that broad is more
+  likely to mis-match than the hand-picked names. In practice, under **Block with
+  a 403**, they did block. They now behave as documented: a match is counted on
+  the crawler side and served. Hand-picked names, your own **Extra crawler user
+  agents**, and the generic `bot`/`crawl`/`spider` giveaways still block.
+
+### Added
+- **Scripts wearing a browser's User-Agent are now caught.** The traffic that
+  inflates download numbers most rarely announces itself: email security tools
+  that open every link before it reaches the reader, proxies and antivirus
+  sandboxes that re-fetch a file to inspect it, scrapers that set a Chrome
+  User-Agent to blend in. Every current browser sends a set of Fetch Metadata
+  headers (`Sec-Fetch-Mode` and friends) with every request to a secure site, and
+  page scripts can't remove them. A request that claims to be a browser version
+  known to send them, and arrives with none, wasn't sent by that browser. It's
+  now counted on the crawler side. The check only runs over HTTPS, and only when
+  the User-Agent names a browser and version known to send the headers (Chromium
+  80+, Firefox 90+, Safari 17+, any browser on iOS 17+), so it can only catch a
+  User-Agent that is lying, never doubt one that isn't. Like the distilled list,
+  it's a soft signal: counted separately, never blocked.
+- **Tests for the classifier.** The request classifier, the request-shape check
+  and the fingerprint are pure functions, and now have a PHPUnit suite
+  (`composer test`) covering named crawlers, the token lists, prefetch headers,
+  the Fetch Metadata check across browsers and versions, and `Range` parsing.
+
+### For developers
+- `RequestSignals::classify()` takes the firm and soft token lists as separate
+  arguments, and gains a new `SIGNAL_SUSPECT` result for soft matches. Use
+  `RequestSignals::isCrawler($signal)` to test for either crawler signal.
+- `Crawlers::classificationTokens()`, which merged the two lists, is gone. Read
+  `Settings::normalizedCrawlerUserAgents()` and `Crawlers::tokens()` instead.
+- `Downloads::increment()` accepts an optional client fingerprint as its fifth
+  argument, which enables the duplicate window for that call. Calls without one
+  (the console, imports, your own code) count every time, as before.
+
 ## 1.5.0 - 2026-09-10
 
 This release is about trusting your download numbers. It shows the real human

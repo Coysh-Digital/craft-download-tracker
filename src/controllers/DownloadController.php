@@ -70,7 +70,10 @@ class DownloadController extends Controller
             return $this->_notFound();
         }
 
-        $signal = RequestSignals::classifyCurrentRequest($plugin->crawlers->classificationTokens());
+        $signal = RequestSignals::classifyCurrentRequest(
+            $settings->normalizedCrawlerUserAgents(),
+            $plugin->crawlers->tokens(),
+        );
 
         // Refuse before the login check: there's no sense bouncing a crawler we're
         // about to turn away through a login round-trip first.
@@ -94,8 +97,21 @@ class DownloadController extends Controller
         // A prefetch is still served - it's a real browser getting ready for a
         // real click - it just isn't counted, so the click that follows counts
         // once rather than twice.
-        if ($settings->shouldCount($signal)) {
-            $plugin->downloads->increment($asset, [], false, $signal === RequestSignals::SIGNAL_CRAWLER);
+        //
+        // Likewise a HEAD, or a Range request that picks the file up part-way
+        // through, is still served in full: it's one of the several requests a
+        // single download produces (a PDF viewer paging, a download manager on
+        // many connections), and only the one that opens the file counts. The
+        // fingerprint then folds any repeats within the duplicate window - a
+        // second full request, a retry, a double-click - into that one count.
+        if ($settings->shouldCount($signal) && RequestSignals::isCurrentRequestDownload()) {
+            $plugin->downloads->increment(
+                $asset,
+                [],
+                false,
+                RequestSignals::isCrawler($signal),
+                RequestSignals::fingerprintCurrentRequest(),
+            );
         }
 
         $url = $asset->getUrl();

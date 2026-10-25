@@ -47,6 +47,12 @@ return [
     // Matched case-insensitively as substrings, not patterns (e.g. 'acmebot').
     'crawlerUserAgents' => [],
 
+    // How long (seconds) repeat hits on one file from the same visitor count as
+    // a single download. One click often arrives as several requests - a PDF
+    // viewer pulling pages, a download manager on many connections, a
+    // double-click - and this folds them back into one. 0 counts every request.
+    'dedupeWindow' => 60,
+
     // Require a logged-in user for the served-download route.
     'requireLoginToServe' => false,
 

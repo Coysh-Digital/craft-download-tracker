@@ -10,6 +10,7 @@ namespace coyshdigital\downloadtracker\services;
 
 use Craft;
 use coyshdigital\downloadtracker\events\DownloadEvent;
+use coyshdigital\downloadtracker\helpers\RequestSignals;
 use coyshdigital\downloadtracker\Plugin;
 use coyshdigital\downloadtracker\records\CountRecord;
 use coyshdigital\downloadtracker\records\DailyRecord;
@@ -83,6 +84,12 @@ class Downloads extends Component
      * @param bool $isCrawler Whether the hit came from a crawler. Crawler hits count
      *   toward the total like any other, and additionally toward `crawlerCount`,
      *   which makes `count - crawlerCount` the human total.
+     * @param string|null $fingerprint The requesting client's fingerprint (see
+     *   {@see RequestSignals::fingerprint()}). When given, a repeat hit on the
+     *   same file from the same client within the duplicate window is treated as
+     *   part of the download already counted, and not counted again. Pass null
+     *   from anywhere without a client to fingerprint - the console, an import -
+     *   and every call counts.
      * @return bool Whether a download was counted.
      * @throws \yii\db\Exception if the upsert fails.
      */
@@ -91,10 +98,17 @@ class Downloads extends Component
         array $meta = [],
         bool $downloadFlag = false,
         bool $isCrawler = false,
+        ?string $fingerprint = null,
     ): bool {
         $identity = $this->resolveIdentity($file, $downloadFlag);
 
         if ($identity === null) {
+            return false;
+        }
+
+        // Before the event, so handlers see each download once, not every request
+        // it was made of.
+        if ($fingerprint !== null && $this->isDuplicateHit($identity['downloadKey'], $fingerprint)) {
             return false;
         }
 
@@ -177,6 +191,37 @@ class Downloads extends Component
         )->execute();
 
         return true;
+    }
+
+    /**
+     * Returns whether a hit on a file is a repeat from the same client within the
+     * duplicate window - and, if it isn't, opens the window for that pair.
+     *
+     * One download reaches the plugin as several requests more often than not:
+     * a browser's PDF viewer pulls pages with Range requests, a download manager
+     * opens many connections, a person double-clicks, a beacon is retried. The
+     * window folds those back into one. It lives in Craft's cache under a key
+     * derived from the fingerprint and the file, expiring with the window, so it
+     * costs no database rows and keeps nothing about the visitor.
+     *
+     * @param string $downloadKey The file's canonical identity.
+     * @param string $fingerprint The client fingerprint.
+     * @return bool
+     * @since 1.6.0
+     */
+    public function isDuplicateHit(string $downloadKey, string $fingerprint): bool
+    {
+        $window = Plugin::getInstance()->getSettings()->dedupeWindow;
+
+        if ($window <= 0) {
+            return false;
+        }
+
+        $key = 'downloadtracker:hit:' . sha1($fingerprint . '|' . $downloadKey);
+
+        // add() only writes when the key is absent, so the first request through
+        // opens the window and every later one within it reads as a duplicate.
+        return !Craft::$app->getCache()->add($key, 1, $window);
     }
 
     /**

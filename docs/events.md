@@ -18,7 +18,7 @@ download is counted. The event is a
 | `asset` | `?Asset` | The related asset, when resolvable. |
 | `sourceType` | `string` | One of `asset`, `path`, `url`. |
 | `filename` | `string` | The file's display name. |
-| `isCrawler` | `bool` | Whether the hit came from a crawler rather than a person. |
+| `isCrawler` | `bool` | Whether the hit came from a crawler rather than a person. True for both firm and [soft](/crawlers#firm-and-soft-signals) crawler signals. |
 | `isValid` | `bool` | Whether the download should be counted. Set to `false` to skip it. |
 
 Set `isValid` to `false` to stop the download being recorded. Everything else is

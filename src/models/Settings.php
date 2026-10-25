@@ -113,6 +113,18 @@ class Settings extends Model
     public array $crawlerUserAgents = [];
 
     /**
+     * @var int How long, in seconds, repeated hits on one file from the same
+     * client (same address and User-Agent) collapse into a single download.
+     * One click can reach the plugin as several requests - an inline PDF viewer
+     * pulling pages on demand, a download manager opening several connections,
+     * a double-click, a retry - and this folds them back into one. Held in the
+     * cache only, never the database. 0 disables it and counts every request.
+     *
+     * @since 1.6.0
+     */
+    public int $dedupeWindow = 60;
+
+    /**
      * @var bool Whether the served-download route requires a logged-in user.
      */
     public bool $requireLoginToServe = false;
@@ -195,7 +207,7 @@ class Settings extends Model
         $rules[] = [['trackedPathPrefixes', 'trackedExtensions', 'excludedHosts', 'crawlerUserAgents'], 'safe'];
         $rules[] = [['serveMode'], 'in', 'range' => [self::SERVE_MODE_AUTO, self::SERVE_MODE_REDIRECT, self::SERVE_MODE_STREAM]];
         $rules[] = [['crawlerMode'], 'in', 'range' => [self::CRAWLER_MODE_BLOCK, self::CRAWLER_MODE_SEPARATE, self::CRAWLER_MODE_IGNORE]];
-        $rules[] = [['dailyRetentionDays', 'signedUrlTtl'], 'integer', 'min' => 0];
+        $rules[] = [['dailyRetentionDays', 'signedUrlTtl', 'dedupeWindow'], 'integer', 'min' => 0];
         $rules[] = [['reportingConnectionCode'], 'string'];
         $rules[] = [['reportingTolerance'], 'integer', 'min' => 30, 'max' => 3600];
         $rules[] = [['serveMode', 'crawlerMode', 'dailyRetentionDays'], 'required'];
@@ -245,6 +257,11 @@ class Settings extends Model
      * Returns whether a request carrying the given signal should be refused
      * outright rather than served.
      *
+     * Only a firm crawler signal is ever refused. A suspect one - a soft-list
+     * match, or a browser User-Agent arriving without the headers that browser
+     * always sends - is counted on the crawler side instead, because a miscount
+     * can be corrected after the fact where a refused download can't.
+     *
      * @param string $signal A RequestSignals::SIGNAL_* constant.
      * @return bool
      */
@@ -265,7 +282,8 @@ class Settings extends Model
         return match ($signal) {
             // A prefetch isn't a download, whatever the crawler mode says.
             RequestSignals::SIGNAL_PREFETCH => false,
-            RequestSignals::SIGNAL_CRAWLER => $this->crawlerMode === self::CRAWLER_MODE_SEPARATE,
+            RequestSignals::SIGNAL_CRAWLER,
+            RequestSignals::SIGNAL_SUSPECT => $this->crawlerMode === self::CRAWLER_MODE_SEPARATE,
             default => true,
         };
     }

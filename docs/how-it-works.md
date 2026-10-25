@@ -54,7 +54,10 @@ never depends on your page hitting PHP.
 Search engines, AI crawlers, link unfurlers and uptime monitors all download
 files, and left alone they quietly inflate your numbers. Download Tracker can
 tell most of them apart from real people and, depending on your setting, count
-them separately, ignore them, or block them. See [Crawlers](/crawlers).
+them separately, ignore them, or block them. It also tells a download apart from
+the extra requests one download throws off - a PDF viewer paging through a file,
+a download manager on several connections, a double-click - so the counter counts
+downloads, not HTTP requests. See [Crawlers](/crawlers).
 
 ## What a "file" is
 
