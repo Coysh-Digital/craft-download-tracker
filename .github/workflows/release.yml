@@ -1,0 +1,73 @@
+# Tags and publishes a GitHub release for a version that's already on main.
+#
+# Run it from the Actions tab (or `gh workflow run release.yml -f version=1.6.0`)
+# after the release PR has merged. It checks the version matches composer.json,
+# lifts that version's section out of CHANGELOG.md for the release notes, then
+# creates the tag at the current commit and the release in one go.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, e.g. 1.6.0 (must match composer.json and have a CHANGELOG entry)
+        required: true
+        type: string
+      title:
+        description: Short release title, e.g. "Count downloads, not requests" (optional)
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the version matches composer.json
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! grep -Eq "\"version\": *\"$VERSION\"" composer.json; then
+            echo "composer.json isn't at $VERSION:"
+            grep '"version"' composer.json
+            exit 1
+          fi
+
+      - name: Lift the release notes out of the changelog
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          awk -v v="$VERSION" '
+            /^## / { if (found) exit; found = ($2 == v); if (found) print; next }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if ! [ -s release-notes.md ]; then
+            echo "No '## $VERSION' section in CHANGELOG.md"
+            exit 1
+          fi
+
+          echo "Release notes:"
+          cat release-notes.md
+
+      - name: Tag and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          name="$VERSION"
+          if [ -n "$TITLE" ]; then
+            name="$VERSION — $TITLE"
+          fi
+
+          gh release create "$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$name" \
+            --notes-file release-notes.md
