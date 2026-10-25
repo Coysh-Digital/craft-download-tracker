@@ -1,17 +1,22 @@
-# Tags and publishes a GitHub release for a version that's already on main.
+# Tags and publishes a GitHub release for the version in composer.json.
 #
-# Run it from the Actions tab (or `gh workflow run release.yml -f version=1.6.0`)
-# after the release PR has merged. It checks the version matches composer.json,
-# lifts that version's section out of CHANGELOG.md for the release notes, then
-# creates the tag at the current commit and the release in one go.
+# Runs on every push to main. If composer.json's version already has a tag it
+# does nothing, so a routine merge is a no-op; bump the version in composer.json
+# and add its CHANGELOG.md section in a release PR, and merging that PR cuts the
+# release. It can also be run by hand from the Actions tab (or
+# `gh workflow run release.yml -f version=1.6.0 -f title="..."`), which is the
+# way to give a release a title alongside its version number.
 name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
-        description: Version to release, e.g. 1.6.0 (must match composer.json and have a CHANGELOG entry)
-        required: true
+        description: Version to release, e.g. 1.6.0 (defaults to the one in composer.json)
+        required: false
+        default: ""
         type: string
       title:
         description: Short release title, e.g. "Count downloads, not requests" (optional)
@@ -28,19 +33,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check the version matches composer.json
+      - name: Work out the version
+        id: version
         env:
-          VERSION: ${{ inputs.version }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if ! grep -Eq "\"version\": *\"$VERSION\"" composer.json; then
-            echo "composer.json isn't at $VERSION:"
-            grep '"version"' composer.json
+          current=$(sed -nE 's/^ *"version": *"([^"]+)".*/\1/p' composer.json | head -n1)
+
+          if [ -z "$current" ]; then
+            echo "Couldn't read a version from composer.json"
             exit 1
           fi
 
-      - name: Lift the release notes out of the changelog
+          version="${INPUT_VERSION:-$current}"
+
+          if [ "$version" != "$current" ]; then
+            echo "Asked to release $version but composer.json is at $current"
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if that version is already released
+        id: existing
         env:
-          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" > /dev/null \
+            || gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "$VERSION is already tagged or released - nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Lift the release notes out of the changelog
+        if: steps.existing.outputs.skip == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           awk -v v="$VERSION" '
             /^## / { if (found) exit; found = ($2 == v); if (found) print; next }
@@ -48,7 +79,7 @@ jobs:
           ' CHANGELOG.md > release-notes.md
 
           if ! [ -s release-notes.md ]; then
-            echo "No '## $VERSION' section in CHANGELOG.md"
+            echo "No '## $VERSION' section in CHANGELOG.md - add one before releasing."
             exit 1
           fi
 
@@ -56,9 +87,10 @@ jobs:
           cat release-notes.md
 
       - name: Tag and publish
+        if: steps.existing.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
           TITLE: ${{ inputs.title }}
         run: |
           name="$VERSION"
@@ -71,3 +103,5 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "$name" \
             --notes-file release-notes.md
+
+          echo "Released $name"
